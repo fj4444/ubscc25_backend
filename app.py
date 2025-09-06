@@ -95,5 +95,15 @@ def duolingo_sort():
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
+from InkArchive import final
+@app.route('/The-Ink-Archive', methods=['POST'])
+def The_Ink_Archive():
+    try:
+        data = request.json
+        return final(data)
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
 if __name__ == '__main__':
     app.run(debug=True)
