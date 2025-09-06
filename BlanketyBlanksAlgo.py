@@ -177,7 +177,6 @@ def BlanketyBlanksAlgoTest(json_data):
         except:
             111
     output_array[np.isnan(output_array)] = 0.0
-    print(type(output_array))
     python_list = output_array.tolist()
     # # 构造 JSON 对象
     result = {"answer": python_list}
