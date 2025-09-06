@@ -6,8 +6,10 @@ from trade import LatexFormulaEvaluator
 from princess_diaries_v1 import solve_princess_diaries
 from spy import investigate
 from sail import SailingClubHandler
+from flask_cors import CORS # 导入 CORS 模块
 
 app = Flask(__name__)
+CORS(app) # 启用 CORS，允许所有来源的请求
 
 @app.route('/blankety', methods=['POST'])
 def BlanketyBlanksAlgo():
@@ -116,6 +118,12 @@ def trading_bot():
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
+@app.route('/2048', methods=['POST'])
+def handle_2048():
+    # 你的游戏逻辑代码
+    # ...
+    return jsonify(nextGrid=[...], endGame=None)
+    
 @app.route('/sailing-club/<username>', methods=['GET', 'POST'])
 def show_user_profile(username):
 
