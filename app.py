@@ -76,7 +76,7 @@ def princess_diaries():
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
-@app.route('/sailing-club', methods=['POST'])
+@app.route('/', methods=['POST'])
 def sailing_club():
     try:
         data = request.json
