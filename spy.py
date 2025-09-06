@@ -47,7 +47,6 @@ def find_minimum_spanning_tree(edges, nodes):
             parent[px] = py
             return True
         return False
-    
     # 按边的字典序排序（确保结果的一致性）
     sorted_edges = sorted(edges)
     
