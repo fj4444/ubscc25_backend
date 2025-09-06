@@ -4,92 +4,6 @@ from typing import List, Tuple, Dict, Set
 from itertools import combinations
 import heapq
 
-
-def princess_diaries(input_data: dict) -> dict:
-    """
-    公主日记任务调度优化 - 主要结果输出函数
-    
-    这个函数是解决Princess Diaries问题的核心入口，使用动态规划算法
-    求解在时间约束下的最优任务调度方案，最大化得分并最小化交通费用。
-    
-    Args:
-        input_data: 包含以下键的字典
-            - tasks: 任务列表，每个任务包含name, start, end, station, score
-            - subway: 地铁路线列表，每个路线包含connection和fee
-            - starting_station: 起始车站ID
-        
-    Returns:
-        包含以下键的字典:
-            - max_score: 最大可能得分
-            - min_fee: 最小交通费用
-            - schedule: 按开始时间排序的任务名称列表
-    """
-    try:
-        # 验证输入数据格式
-        validation_result = _validate_input_data(input_data)
-        if not validation_result['valid']:
-            return {
-                'error': f"输入数据格式错误: {validation_result['error']}",
-                'max_score': 0,
-                'min_fee': 0,
-                'schedule': []
-            }
-        
-        # 解析输入数据
-        tasks = []
-        for task_data in input_data['tasks']:
-            task = {
-                'name': str(task_data['name']),
-                'start': int(task_data['start']),
-                'end': int(task_data['end']),
-                'station': int(task_data['station']),
-                'score': int(task_data['score'])
-            }
-            tasks.append(task)
-        
-        # 创建地铁路线数据
-        routes = []
-        for route_data in input_data['subway']:
-            route = {
-                'connection': [int(x) for x in route_data['connection']],
-                'fee': int(route_data['fee'])
-            }
-            routes.append(route)
-        
-        starting_station = int(input_data['starting_station'])
-        
-        # 构建地铁图
-        graph = _build_subway_graph(routes)
-        
-        # 计算距离矩阵
-        distance_matrix, station_to_idx, idx_to_station = _compute_distance_matrix(graph)
-        
-        # 使用动态规划求解最优解
-        optimal_result = _solve_optimal_schedule(tasks, graph, distance_matrix, station_to_idx, starting_station)
-        
-        # 如果动态规划解不够好，尝试启发式算法
-        if len(optimal_result['schedule']) == 0 or optimal_result['max_score'] == 0:
-            heuristic_result = _solve_with_heuristic(tasks, graph, distance_matrix, station_to_idx, starting_station)
-            if heuristic_result['max_score'] > optimal_result['max_score']:
-                optimal_result = heuristic_result
-        
-        # 返回字典格式的结果
-        return {
-            'max_score': optimal_result['max_score'],
-            'min_fee': optimal_result['min_fee'],
-            'schedule': optimal_result['schedule']
-        }
-        
-    except Exception as e:
-        # 错误处理
-        return {
-            'error': f"处理输入数据时发生错误: {str(e)}",
-            'max_score': 0,
-            'min_fee': 0,
-            'schedule': []
-        }
-
-
 def _validate_input_data(input_data: dict) -> dict:
     """
     验证输入数据格式是否正确
@@ -513,56 +427,86 @@ def create_sample_input() -> Dict:
         'starting_station': 0
     }
 
-
-if __name__ == "__main__":
-    # 测试算法
-    sample_input = create_sample_input()
+def solve_princess_diaries(input_data: dict) -> dict:
+    """
+    公主日记任务调度优化 - 主要结果输出函数
     
-    # 构建地铁图
-    graph = _build_subway_graph(sample_input['subway'])
-    distance_matrix, station_to_idx, idx_to_station = _compute_distance_matrix(graph)
+    这个函数是解决Princess Diaries问题的核心入口，使用动态规划算法
+    求解在时间约束下的最优任务调度方案，最大化得分并最小化交通费用。
     
-    print("=== Princess Diaries 任务调度优化 ===")
-    print(f"地铁图节点数: {len(graph.nodes())}")
-    print(f"地铁图边数: {len(graph.edges())}")
-    print(f"任务数量: {len(sample_input['tasks'])}")
-    print(f"起始车站: {sample_input['starting_station']}")
-    print()
-    
-    # 使用动态规划求解
-    optimal_output = _solve_optimal_schedule(sample_input['tasks'], graph, distance_matrix, station_to_idx, sample_input['starting_station'])
-    
-    print("=== 最优解（动态规划）===")
-    print(f"最大得分: {optimal_output['max_score']}")
-    print(f"最小交通费用: {optimal_output['min_fee']}")
-    print(f"选择的任务数量: {len(optimal_output['schedule'])}")
-    print("选择的任务:")
-    for task_name in optimal_output['schedule']:
-        task = next(t for t in sample_input['tasks'] if t['name'] == task_name)
-        print(f"  {task['name']}: 车站{task['station']}, 得分{task['score']}, 时间[{task['start']}-{task['end']}]")
-    
-    print()
-    
-    # 使用启发式算法求解
-    heuristic_output = _solve_with_heuristic(sample_input['tasks'], graph, distance_matrix, station_to_idx, sample_input['starting_station'])
-    
-    print("=== 启发式解 ===")
-    print(f"最大得分: {heuristic_output['max_score']}")
-    print(f"最小交通费用: {heuristic_output['min_fee']}")
-    print(f"选择的任务数量: {len(heuristic_output['schedule'])}")
-    print("选择的任务:")
-    for task_name in heuristic_output['schedule']:
-        task = next(t for t in sample_input['tasks'] if t['name'] == task_name)
-        print(f"  {task['name']}: 车站{task['station']}, 得分{task['score']}, 时间[{task['start']}-{task['end']}]")
-    
-    print()
-    
-    # 测试主函数
-    print("=== 测试 princess_diaries 主函数 ===")
-    result = princess_diaries(sample_input)
-    print(f"princess_diaries 主函数结果: {result}")
-    
-    # 测试向后兼容函数
-    print("\n=== 测试向后兼容函数 ===")
-    result2 = solve_princess_diaries(sample_input)
-    print(f"solve_princess_diaries 结果: {result2}")
+    Args:
+        input_data: 包含以下键的字典
+            - tasks: 任务列表，每个任务包含name, start, end, station, score
+            - subway: 地铁路线列表，每个路线包含connection和fee
+            - starting_station: 起始车站ID
+        
+    Returns:
+        包含以下键的字典:
+            - max_score: 最大可能得分
+            - min_fee: 最小交通费用
+            - schedule: 按开始时间排序的任务名称列表
+    """
+    try:
+        # 验证输入数据格式
+        validation_result = _validate_input_data(input_data)
+        if not validation_result['valid']:
+            return {
+                'error': f"输入数据格式错误: {validation_result['error']}",
+                'max_score': 0,
+                'min_fee': 0,
+                'schedule': []
+            }
+        
+        # 解析输入数据
+        tasks = []
+        for task_data in input_data['tasks']:
+            task = {
+                'name': str(task_data['name']),
+                'start': int(task_data['start']),
+                'end': int(task_data['end']),
+                'station': int(task_data['station']),
+                'score': int(task_data['score'])
+            }
+            tasks.append(task)
+        
+        # 创建地铁路线数据
+        routes = []
+        for route_data in input_data['subway']:
+            route = {
+                'connection': [int(x) for x in route_data['connection']],
+                'fee': int(route_data['fee'])
+            }
+            routes.append(route)
+        
+        starting_station = int(input_data['starting_station'])
+        
+        # 构建地铁图
+        graph = _build_subway_graph(routes)
+        
+        # 计算距离矩阵
+        distance_matrix, station_to_idx, idx_to_station = _compute_distance_matrix(graph)
+        
+        # 使用动态规划求解最优解
+        optimal_result = _solve_optimal_schedule(tasks, graph, distance_matrix, station_to_idx, starting_station)
+        
+        # 如果动态规划解不够好，尝试启发式算法
+        if len(optimal_result['schedule']) == 0 or optimal_result['max_score'] == 0:
+            heuristic_result = _solve_with_heuristic(tasks, graph, distance_matrix, station_to_idx, starting_station)
+            if heuristic_result['max_score'] > optimal_result['max_score']:
+                optimal_result = heuristic_result
+        
+        # 返回字典格式的结果
+        return {
+            'max_score': optimal_result['max_score'],
+            'min_fee': optimal_result['min_fee'],
+            'schedule': optimal_result['schedule']
+        }
+        
+    except Exception as e:
+        # 错误处理
+        return {
+            'error': f"处理输入数据时发生错误: {str(e)}",
+            'max_score': 0,
+            'min_fee': 0,
+            'schedule': []
+        }
