@@ -6,7 +6,7 @@ from trade import LatexFormulaEvaluator
 from princess_diaries_v1 import solve_princess_diaries
 from spy import investigate
 from sail import SailingClubHandler
-from micromouse import MouseState, apply_token
+from micromouse import process_micromouse_request
 from flask_cors import CORS # 导入 CORS 模块
 
 app = Flask(__name__)
@@ -160,37 +160,23 @@ def mage_time():
 
 @app.route("/micro-mouse", methods=["POST"])
 def micro_mouse_api():
-    data = request.json
-
-    # 尝试从请求数据重建状态
+    """
+    微鼠竞赛API端点
+    处理微鼠的移动指令请求
+    """
     try:
-        state = MouseState.from_dict(data)
+        data = request.json
+        if not data:
+            return jsonify({"error": "请求数据不能为空"}), 400
+        
+        # 调用微鼠控制器处理请求
+        result = process_micromouse_request(data)
+        
+        # 直接返回结果（已经是正确的JSON格式）
+        return jsonify(result), 200
+        
     except Exception as e:
-        return jsonify({"error": f"Invalid state data: {str(e)}", "end": True})
-
-    instructions = data.get("instructions", [])
-
-    if instructions:
-        # Thinking time per batch
-        state.run_time_ms += 50
-        try:
-            for token in instructions:
-                apply_token(state, token)
-        except ValueError as e:
-            # 处理 crash 情况
-            return jsonify({
-                "error": str(e),
-                "state": state.to_dict(),
-                "instructions": [],
-                "end": True
-            })
-
-    # 返回更新后的状态和空动作列表（可在这里实现策略生成下一步动作）
-    return jsonify({
-        "state": state.to_dict(),
-        "instructions": [],  # TODO: 可以生成下一步动作策略
-        "end": False
-    })
+        return jsonify({"error": f"微鼠控制器错误: {str(e)}"}), 500
 
 
 if __name__ == '__main__':
