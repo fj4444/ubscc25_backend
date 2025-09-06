@@ -120,10 +120,33 @@ def trading_bot():
 
 @app.route('/2048', methods=['POST'])
 def handle_2048():
-    # 你的游戏逻辑代码
-    # ...
-    return jsonify(nextGrid=[...], endGame=None)
-    
+    """
+    处理来自前端的 2048 游戏请求。
+    """
+    # 确保请求体是 JSON 格式
+    if not request.is_json:
+        return jsonify({"error": "请求体必须是 JSON 格式"}), 400
+
+    # 从请求中获取网格和移动方向
+    data = request.get_json()
+    grid = data.get('grid')
+    direction = data.get('mergeDirection')
+
+    # 简单的输入验证
+    if not grid or not direction:
+        return jsonify({"error": "缺少 'grid' 或 'mergeDirection' 参数"}), 400
+
+    # 调用核心游戏逻辑处理函数
+    next_grid, end_game = process_grid(grid, direction)
+
+    # 构造并返回响应
+    response = {
+        "nextGrid": next_grid,
+        "endGame": end_game
+    }
+    return jsonify(response)
+
+
 @app.route('/sailing-club/<username>', methods=['GET', 'POST'])
 def show_user_profile(username):
 
