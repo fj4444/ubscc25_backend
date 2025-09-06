@@ -72,6 +72,14 @@ def solve_princess_diaries(input_data: dict) -> dict:
         # 构建地铁图
         graph = _build_subway_graph(routes)
         
+        # 检查起始车站是否在地铁图中
+        if starting_station not in graph.nodes:
+            return {
+                'max_score': 0,
+                'min_fee': 0,
+                'schedule': []
+            }
+        
         # 计算距离矩阵
         distance_matrix, station_to_idx, idx_to_station = _compute_distance_matrix(graph)
         
@@ -202,6 +210,9 @@ def _build_subway_graph(routes: List[Dict]) -> nx.Graph:
 def _compute_distance_matrix(graph: nx.Graph) -> Tuple[np.ndarray, Dict[int, int], List[int]]:
     """计算所有车站之间的最短距离矩阵"""
     stations = sorted(list(graph.nodes()))
+    # 新增：若stations为空，返回空矩阵和空映射
+    if not stations:
+        return np.array([[]]), {}, []
     n = len(stations)
     station_to_idx = {station: i for i, station in enumerate(stations)}
     
