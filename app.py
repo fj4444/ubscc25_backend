@@ -106,6 +106,16 @@ def The_Ink_Archive():
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
+from TradingBot import final_trading
+@app.route('/trading-bot', methods=['POST'])
+def trading_bot():
+    try:
+        data = request.json
+        return jsonify(final_trading(data)),200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+        
 @app.route('/<path:path>', methods=['POST'])
 def catch_all_post(path):
     print("----------------------------")
@@ -114,6 +124,6 @@ def catch_all_post(path):
     print("----------------------------")
     # 这里你可以选择返回一个错误信息，比如404 Not Found
     return "未找到匹配的接口", 404
-    
+
 if __name__ == '__main__':
     app.run(debug=True)
