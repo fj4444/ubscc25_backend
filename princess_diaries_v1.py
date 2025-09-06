@@ -427,7 +427,7 @@ def create_sample_input() -> Dict:
         'starting_station': 0
     }
 
-def princess_diaries(input_data: dict) -> dict:
+def solve_princess_diaries(input_data: dict) -> dict:
     """
     公主日记任务调度优化 - 主要结果输出函数
     
