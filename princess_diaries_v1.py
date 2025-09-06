@@ -7,130 +7,72 @@ import time
 
 
 def solve_princess_diaries(input_data: dict) -> dict:
-    """
-    公主日记任务调度优化 - 主要结果输出函数
-    
-    这个函数是解决Princess Diaries问题的核心入口，使用动态规划算法
-    求解在时间约束下的最优任务调度方案，最大化得分并最小化交通费用。
-    
-    Args:
-        input_data: 包含以下键的字典
-            - tasks: 任务列表，每个任务包含name, start, end, station, score
-            - subway: 地铁路线列表，每个路线包含connection和fee
-            - starting_station: 起始车站ID
-        
-    Returns:
-        包含以下键的字典:
-            - max_score: 最大可能得分
-            - min_fee: 最小交通费用
-            - schedule: 按开始时间排序的任务名称列表
-    """
-    try:
-        # 验证输入数据格式
-        validation_result = _validate_input_data(input_data)
-        if not validation_result['valid']:
-            return {
-                'max_score': 0,
-                'min_fee': 0,
-                'schedule': []
-            }
-        
-        # 解析输入数据
-        tasks = []
-        for task_data in input_data['tasks']:
-            try:
-                task = {
-                    'name': str(task_data['name']),
-                    'start': int(task_data['start']),
-                    'end': int(task_data['end']),
-                    'station': int(task_data['station']),
-                    'score': int(task_data['score'])
-                }
-                tasks.append(task)
-            except (ValueError, TypeError, KeyError):
-                # 如果某个任务数据无效，跳过它
-                continue
-        
-        # 创建地铁路线数据
-        routes = []
-        for route_data in input_data['subway']:
-            try:
-                route = {
-                    'connection': [int(x) for x in route_data['connection']],
-                    'fee': int(route_data['fee'])
-                }
-                routes.append(route)
-            except (ValueError, TypeError, KeyError):
-                # 如果某个路线数据无效，跳过它
-                continue
-        
-        try:
-            starting_station = int(input_data['starting_station'])
-        except (ValueError, TypeError, KeyError):
-            return {
-                'max_score': 0,
-                'min_fee': 0,
-                'schedule': []
-            }
-        
-        # 如果没有有效任务，返回空结果
-        if not tasks:
-            return {
-                'max_score': 0,
-                'min_fee': 0,
-                'schedule': []
-            }
-        
-        # 构建地铁图
-        graph = _build_subway_graph(routes)
-        
-        # 计算距离矩阵
-        distance_matrix, station_to_idx, idx_to_station = _compute_distance_matrix(graph)
-        
-        # 使用简单贪心算法快速求解（避免超时）
-        try:
-            optimal_result = _solve_greedy(tasks, graph, distance_matrix, station_to_idx, starting_station)
-        except Exception:
-            optimal_result = {'max_score': 0, 'min_fee': 0, 'schedule': []}
-        
-        # 如果任务数量较少，尝试动态规划
-        if len(tasks) <= 20:
-            try:
-                dp_result = _solve_optimal_schedule(tasks, graph, distance_matrix, station_to_idx, starting_station)
-                if dp_result['max_score'] > optimal_result['max_score']:
-                    optimal_result = dp_result
-            except Exception:
-                # 如果动态规划失败，继续使用贪心结果
-                pass
-        
-        # 返回字典格式的结果
-        result = {
-            'max_score': optimal_result['max_score'],
-            'min_fee': optimal_result['min_fee'],
-            'schedule': optimal_result['schedule']
+    # 验证输入数据格式
+    validation_result = _validate_input_data(input_data)
+    if not validation_result['valid']:
+        return {
+            'max_score': 0,
+            'min_fee': 0,
+            'schedule': []
         }
-        
-        # 确保所有值都是有效的
-        if not isinstance(result['max_score'], int) or result['max_score'] < 0:
-            result['max_score'] = 0
-        if not isinstance(result['min_fee'], int) or result['min_fee'] < 0:
-            result['min_fee'] = 0
-        if not isinstance(result['schedule'], list):
-            result['schedule'] = []
-        
-        return result
-        
-    except Exception as e:
-        # 错误处理 - 确保返回格式正确
+    
+    # 解析输入数据
+    tasks = []
+    for task_data in input_data['tasks']:
         try:
-            return {
-                'max_score': 0,
-                'min_fee': 0,
-                'schedule': []
+            task = {
+                'name': str(task_data['name']),
+                'start': int(task_data['start']),
+                'end': int(task_data['end']),
+                'station': int(task_data['station']),
+                'score': int(task_data['score'])
             }
-        except Exception:
-            # 如果连这个都失败了，返回最基本的格式
-            return {'max_score': 0, 'min_fee': 0, 'schedule': []}
+            tasks.append(task)
+        except (ValueError, TypeError, KeyError):
+            # 如果某个任务数据无效，跳过它
+            continue
+    
+    # 创建地铁路线数据
+    routes = []
+    for route_data in input_data['subway']:
+        try:
+            route = {
+                'connection': [int(x) for x in route_data['connection']],
+                'fee': int(route_data['fee'])
+            }
+            routes.append(route)
+        except (ValueError, TypeError, KeyError):
+            # 如果某个路线数据无效，跳过它
+            continue
+
+    starting_station = int(input_data['starting_station'])
+
+    
+    # 如果没有有效任务，返回空结果
+    if not tasks:
+        return {
+            'max_score': 0,
+            'min_fee': 0,
+            'schedule': []
+        }
+    
+    # 构建地铁图
+    graph = _build_subway_graph(routes)
+    
+    # 计算距离矩阵
+    distance_matrix, station_to_idx, idx_to_station = _compute_distance_matrix(graph)
+    
+    # 使用简单贪心算法快速求解（避免超时）
+
+    optimal_result = _solve_greedy(tasks, graph, distance_matrix, station_to_idx, starting_station)
+    # 返回字典格式的结果
+    result = {
+        'max_score': optimal_result['max_score'],
+        'min_fee': optimal_result['min_fee'],
+        'schedule': optimal_result['schedule']
+    
+    return result
+
 
 
 def _validate_input_data(input_data: dict) -> dict:
@@ -374,85 +316,6 @@ def _calculate_score(schedule: List[Dict]) -> int:
         return 0
 
 
-def _solve_optimal_schedule(tasks: List[Dict], graph: nx.Graph, distance_matrix: np.ndarray,
-                           station_to_idx: Dict[int, int], starting_station: int) -> Dict:
-    """
-    求解最优调度方案 - 使用动态规划求解最大权重独立集问题
-    
-    Returns:
-        包含max_score, min_fee, schedule的字典
-    """
-    if not tasks:
-        return {'max_score': 0, 'min_fee': 0, 'schedule': []}
-    
-    # 按结束时间排序任务
-    sorted_tasks = sorted(tasks, key=lambda t: t['end'])
-    n = len(sorted_tasks)
-    
-    # dp[i] = 考虑前i个任务时的最大得分
-    dp = [0] * (n + 1)
-    choice = [False] * (n + 1)  # choice[i] 表示是否选择了第i个任务
-    
-    for i in range(1, n + 1):
-        current_task = sorted_tasks[i - 1]
-        
-        # 不选择当前任务
-        dp[i] = dp[i - 1]
-        choice[i] = False
-        
-        # 选择当前任务
-        # 找到最后一个与当前任务兼容的任务
-        last_compatible = -1
-        for j in range(i - 1, 0, -1):
-            if _is_compatible(sorted_tasks[j - 1], current_task):
-                last_compatible = j - 1
-                break
-        
-        # 计算选择当前任务的得分
-        if last_compatible == -1:
-            # 没有兼容的前置任务，可以选择当前任务
-            score_with_current = current_task['score']
-        else:
-            # 有兼容的前置任务
-            score_with_current = dp[last_compatible + 1] + current_task['score']
-        
-        # 如果选择当前任务更好
-        if score_with_current > dp[i]:
-            dp[i] = score_with_current
-            choice[i] = True
-    
-    # 重构最优解
-    optimal_tasks = []
-    i = n
-    while i > 0:
-        if choice[i]:  # 选择了第i个任务
-            optimal_tasks.append(sorted_tasks[i - 1])
-            # 找到最后一个兼容的任务
-            last_compatible = -1
-            for j in range(i - 1, 0, -1):
-                if _is_compatible(sorted_tasks[j - 1], sorted_tasks[i - 1]):
-                    last_compatible = j - 1
-                    break
-            if last_compatible == -1:
-                break
-            else:
-                i = last_compatible + 1
-        else:
-            i = i - 1
-    
-    # 计算交通费用
-    travel_cost = _calculate_travel_cost(optimal_tasks, distance_matrix, station_to_idx, starting_station)
-    
-    # 按开始时间排序任务名称（升序）
-    schedule = sorted([task['name'] for task in optimal_tasks], 
-                     key=lambda name: next(t['start'] for t in optimal_tasks if t['name'] == name))
-    
-    return {
-        'max_score': int(dp[n]) if not np.isnan(dp[n]) and not np.isinf(dp[n]) else 0,
-        'min_fee': int(travel_cost) if not np.isnan(travel_cost) and not np.isinf(travel_cost) else 0,
-        'schedule': schedule
-    }
-
 
 def _solve_greedy(tasks: List[Dict], graph: nx.Graph, distance_matrix: np.ndarray,
                  station_to_idx: Dict[int, int], starting_station: int) -> Dict:
@@ -494,138 +357,3 @@ def _solve_greedy(tasks: List[Dict], graph: nx.Graph, distance_matrix: np.ndarra
         }
     except Exception:
         return {'max_score': 0, 'min_fee': 0, 'schedule': []}
-
-
-def _solve_with_heuristic(tasks: List[Dict], graph: nx.Graph, distance_matrix: np.ndarray,
-                         station_to_idx: Dict[int, int], starting_station: int, 
-                         max_iterations: int = 100) -> Dict:
-    """
-    使用启发式算法求解（贪心 + 局部搜索）
-    
-    Args:
-        max_iterations: 最大迭代次数
-        
-    Returns:
-        包含max_score, min_fee, schedule的字典
-    """
-    if not tasks:
-        return {'max_score': 0, 'min_fee': 0, 'schedule': []}
-    
-    # 贪心算法：按权重/时间比例排序
-    def task_priority(task):
-        duration = task['end'] - task['start']
-        return task['score'] / max(duration, 1)
-    
-    sorted_tasks = sorted(tasks, key=task_priority, reverse=True)
-    
-    # 贪心选择
-    current_schedule = []
-    for task in sorted_tasks:
-        if all(_is_compatible(task, scheduled_task) for scheduled_task in current_schedule):
-            current_schedule.append(task)
-    
-    best_schedule = current_schedule.copy()
-    best_score = _calculate_score(best_schedule)
-    best_cost = _calculate_travel_cost(best_schedule, distance_matrix, station_to_idx, starting_station)
-    
-    # 局部搜索优化
-    for _ in range(max_iterations):
-        # 尝试添加新任务
-        for task in tasks:
-            if task not in current_schedule:
-                # 检查是否可以添加
-                can_add = all(_is_compatible(task, scheduled_task) for scheduled_task in current_schedule)
-                if can_add:
-                    new_schedule = current_schedule + [task]
-                    new_score = _calculate_score(new_schedule)
-                    new_cost = _calculate_travel_cost(new_schedule, distance_matrix, station_to_idx, starting_station)
-                    
-                    # 如果得分更高，或者得分相同但费用更低
-                    if (new_score > best_score or 
-                        (new_score == best_score and new_cost < best_cost)):
-                        best_schedule = new_schedule.copy()
-                        best_score = new_score
-                        best_cost = new_cost
-                        current_schedule = new_schedule.copy()
-                        break
-        
-        # 尝试移除任务并添加其他任务
-        if len(current_schedule) > 0:
-            # 随机移除一个任务
-            remove_idx = np.random.randint(0, len(current_schedule))
-            removed_task = current_schedule.pop(remove_idx)
-            
-            # 尝试添加其他任务
-            for task in tasks:
-                if task != removed_task and task not in current_schedule:
-                    can_add = all(_is_compatible(task, scheduled_task) for scheduled_task in current_schedule)
-                    if can_add:
-                        new_schedule = current_schedule + [task]
-                        new_score = _calculate_score(new_schedule)
-                        new_cost = _calculate_travel_cost(new_schedule, distance_matrix, station_to_idx, starting_station)
-                        
-                        if (new_score > best_score or 
-                            (new_score == best_score and new_cost < best_cost)):
-                            best_schedule = new_schedule.copy()
-                            best_score = new_score
-                            best_cost = new_cost
-                            current_schedule = new_schedule.copy()
-                            break
-            
-            # 如果没找到更好的，恢复移除的任务
-            if removed_task not in current_schedule:
-                can_add = all(_is_compatible(removed_task, scheduled_task) for scheduled_task in current_schedule)
-                if can_add:
-                    current_schedule.append(removed_task)
-    
-    # 按开始时间排序任务名称（升序）
-    schedule = sorted([task['name'] for task in best_schedule], 
-                     key=lambda name: next(t['start'] for t in best_schedule if t['name'] == name))
-    
-    return {
-        'max_score': int(best_score) if not np.isnan(best_score) and not np.isinf(best_score) else 0,
-        'min_fee': int(best_cost) if not np.isnan(best_cost) and not np.isinf(best_cost) else 0,
-        'schedule': schedule
-    }
-
-
-# 向后兼容函数
-def solve_princess_diaries(input_data: dict) -> dict:
-    """
-    解决Princess Diaries问题的入口函数（向后兼容）
-    
-    Args:
-        input_data: 包含tasks, subway, starting_station的字典
-        
-    Returns:
-        包含max_score, min_fee, schedule的字典
-    """
-    return princess_diaries(input_data)
-
-
-def create_sample_input() -> Dict:
-    """创建示例输入数据"""
-    # 创建示例任务
-    tasks = [
-        {'name': "A", 'start': 480, 'end': 540, 'station': 1, 'score': 2},
-        {'name': "B", 'start': 600, 'end': 660, 'station': 2, 'score': 1},
-        {'name': "C", 'start': 720, 'end': 780, 'station': 3, 'score': 3},
-        {'name': "D", 'start': 840, 'end': 900, 'station': 4, 'score': 1},
-        {'name': "E", 'start': 960, 'end': 1020, 'station': 1, 'score': 4},
-        {'name': "F", 'start': 530, 'end': 590, 'station': 2, 'score': 1},
-    ]
-    
-    # 创建示例地铁路线
-    routes = [
-        {'connection': [0, 1], 'fee': 10},
-        {'connection': [1, 2], 'fee': 10},
-        {'connection': [2, 3], 'fee': 20},
-        {'connection': [3, 4], 'fee': 30},
-    ]
-    
-    return {
-        'tasks': tasks,
-        'subway': routes,
-        'starting_station': 0
-    }
-
