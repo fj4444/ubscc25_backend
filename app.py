@@ -1,7 +1,11 @@
 from flask import Flask, request, jsonify
 from ticketing import agent
 from BlanketyBlanksAlgo import BlanketyBlanksAlgoTest
+<<<<<<< HEAD
 from trade import LatexFormulaEvaluator
+=======
+from princess_diaries_v1 import princess_diaries
+>>>>>>> cd56d739e419a70d08df09cbd87a69f94bbe4963
 from spy import investigate
 
 app = Flask(__name__)
@@ -35,6 +39,7 @@ def spy():
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
+<<<<<<< HEAD
 @app.route('/trading-formula', methods=['POST'])
 def evaluate_formulas():
     """
@@ -60,6 +65,19 @@ def evaluate_formulas():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+=======
+
+@app.route('/princess-diaries', methods=['POST'])
+def princess_diaries():
+    try:
+        data = request.json
+        result = princess_diaries(data)
+        return jsonify(result), 200
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+>>>>>>> cd56d739e419a70d08df09cbd87a69f94bbe4963
 
 if __name__ == '__main__':
     app.run(debug=True)
