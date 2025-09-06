@@ -42,6 +42,57 @@ def find_max_product_cycle_optimized(graph):
     
     return best_cycle, max_product
 
+# def process(d):
+#     goods = d["goods"]
+#     n = len(goods)
+#     G = np.zeros((n, n)) + 1e-50
+#     for i in range(n):
+#         G[i, i] = 1.0
+#     r = d["ratios"]
+#     for rs in r:
+#         p1 = int(rs[0] + 0.5)
+#         p2 = int(rs[1] + 0.5)
+#         G[p1, p2] = rs[2]
+#     cycle, max_product = find_max_product_cycle_optimized(G)
+#     result = {"path": [goods[i] for i in cycle]}
+#     result["gain"] = 100 * (max_product - 1)
+#     return result
+
+# def final(json_data):
+#     ans = list()
+#     for d in json_data:
+#         ans.append(process(d))
+#     # json_output = json.dumps(ans, indent=2)
+#     return ans
+
+def find_max_triangle_cycle_all_directions(graph):
+    n = len(graph)
+    max_product = -1
+    best_cycle = []
+    best_direction = ""
+    
+    for i in range(n):
+        for j in range(n):
+            if i == j:
+                continue
+            for k in range(n):
+                if k == i or k == j:
+                    continue
+                
+                # 检查顺时针方向: i -> j -> k -> i
+                product_clockwise = graph[i][j] * graph[j][k] * graph[k][i]
+                if product_clockwise > max_product:
+                    max_product = product_clockwise
+                    best_cycle = [i, j, k, i]
+                
+                # 检查逆时针方向: i -> k -> j -> i  
+                product_counterclockwise = graph[i][k] * graph[k][j] * graph[j][i]
+                if product_counterclockwise > max_product:
+                    max_product = product_counterclockwise
+                    best_cycle = [i, k, j, i]
+    
+    return best_cycle, max_product
+
 def process(d):
     goods = d["goods"]
     n = len(goods)
@@ -53,7 +104,10 @@ def process(d):
         p1 = int(rs[0] + 0.5)
         p2 = int(rs[1] + 0.5)
         G[p1, p2] = rs[2]
-    cycle, max_product = find_max_product_cycle_optimized(G)
+    if n < 5:
+        cycle, max_product = find_max_triangle_cycle_all_directions(G)
+    else:
+        cycle, max_product = find_max_product_cycle_optimized(G)
     result = {"path": [goods[i] for i in cycle]}
     result["gain"] = 100 * (max_product - 1)
     return result
@@ -64,7 +118,6 @@ def final(json_data):
         ans.append(process(d))
     # json_output = json.dumps(ans, indent=2)
     return ans
-
 
 if __name__ == "__main__":
     json_data =     [
