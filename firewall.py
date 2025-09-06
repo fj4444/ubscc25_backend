@@ -65,7 +65,7 @@ def double_consonants_r(x):
     return ''.join(ans)
 
 def reverse(redacted, transformations):
-    function_names = re.findall(r'(\w+)\(', transformations)
+    function_names = re.findall(r'(\w+)\(', ' '.join(transformations))
     for f in reversed(function_names):
         if f == "mirror_words":
             redacted = mirror_words_r(redacted)
@@ -78,7 +78,7 @@ def reverse(redacted, transformations):
         if f == "encode_index_parity":
             redacted = encode_index_parity_r(redacted)
         if f == "double_consonants":
-            redacted = double_consonants(redacted)
+            redacted = double_consonants_r(redacted)
     return redacted
 
 def final_firewall(json_data):
