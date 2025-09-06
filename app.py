@@ -133,14 +133,14 @@ def show_user_profile(username):
 
     return f"Welcome, {username}!"
 
-# @app.route('/<path:path>', methods=['POST'])
-# def catch_all_post(path):
-#     print("----------------------------")
-#     print(f"收到一个 POST 请求，但没有找到匹配的特定 endpoint。")
-#     print(f"请求的完整路径是: {request.path}")
-#     print("----------------------------")
-#     # 这里你可以选择返回一个错误信息，比如404 Not Found
-#     return "未找到匹配的接口", 404
+@app.route('/<path:path>', methods=['POST'])
+def catch_all_post(path):
+    print("----------------------------")
+    print(f"收到一个 POST 请求，但没有找到匹配的特定 endpoint。")
+    print(f"请求的完整路径是: {request.path}")
+    print("----------------------------")
+    # 这里你可以选择返回一个错误信息，比如404 Not Found
+    return "未找到匹配的接口", 404
 
 if __name__ == '__main__':
     app.run(debug=True)
