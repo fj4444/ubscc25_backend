@@ -6,7 +6,7 @@ import heapq
 import time
 
 
-def princess_diaries(input_data: dict) -> dict:
+def solve_princess_diaries(input_data: dict) -> dict:
     """
     公主日记任务调度优化 - 主要结果输出函数
     
@@ -629,56 +629,3 @@ def create_sample_input() -> Dict:
         'starting_station': 0
     }
 
-
-if __name__ == "__main__":
-    # 测试算法
-    sample_input = create_sample_input()
-    
-    # 构建地铁图
-    graph = _build_subway_graph(sample_input['subway'])
-    distance_matrix, station_to_idx, idx_to_station = _compute_distance_matrix(graph)
-    
-    print("=== Princess Diaries 任务调度优化 ===")
-    print(f"地铁图节点数: {len(graph.nodes())}")
-    print(f"地铁图边数: {len(graph.edges())}")
-    print(f"任务数量: {len(sample_input['tasks'])}")
-    print(f"起始车站: {sample_input['starting_station']}")
-    print()
-    
-    # 使用动态规划求解
-    optimal_output = _solve_optimal_schedule(sample_input['tasks'], graph, distance_matrix, station_to_idx, sample_input['starting_station'])
-    
-    print("=== 最优解（动态规划）===")
-    print(f"最大得分: {optimal_output['max_score']}")
-    print(f"最小交通费用: {optimal_output['min_fee']}")
-    print(f"选择的任务数量: {len(optimal_output['schedule'])}")
-    print("选择的任务:")
-    for task_name in optimal_output['schedule']:
-        task = next(t for t in sample_input['tasks'] if t['name'] == task_name)
-        print(f"  {task['name']}: 车站{task['station']}, 得分{task['score']}, 时间[{task['start']}-{task['end']}]")
-    
-    print()
-    
-    # 使用启发式算法求解
-    heuristic_output = _solve_with_heuristic(sample_input['tasks'], graph, distance_matrix, station_to_idx, sample_input['starting_station'])
-    
-    print("=== 启发式解 ===")
-    print(f"最大得分: {heuristic_output['max_score']}")
-    print(f"最小交通费用: {heuristic_output['min_fee']}")
-    print(f"选择的任务数量: {len(heuristic_output['schedule'])}")
-    print("选择的任务:")
-    for task_name in heuristic_output['schedule']:
-        task = next(t for t in sample_input['tasks'] if t['name'] == task_name)
-        print(f"  {task['name']}: 车站{task['station']}, 得分{task['score']}, 时间[{task['start']}-{task['end']}]")
-    
-    print()
-    
-    # 测试主函数
-    print("=== 测试 princess_diaries 主函数 ===")
-    result = princess_diaries(sample_input)
-    print(f"princess_diaries 主函数结果: {result}")
-    
-    # 测试向后兼容函数
-    print("\n=== 测试向后兼容函数 ===")
-    result2 = solve_princess_diaries(sample_input)
-    print(f"solve_princess_diaries 结果: {result2}")
