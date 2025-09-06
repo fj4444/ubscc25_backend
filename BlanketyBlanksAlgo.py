@@ -163,16 +163,12 @@ def fallback_interpolation(y):
     return result
 
 def BlanketyBlanksAlgoTest(json_data):
-    try:
-        with open(json_data, 'r') as f:
-            data = json.load(f)
-    except (FileNotFoundError, OSError):
-        data = json.loads(json_data)
-    series_data = data['series']
+    series_data = json_data.get('series',[])
     numpy_arrays = []
     for series_list in series_data:
         processed_list = [np.nan if item is None else item for item in series_list]
         numpy_arrays.append(np.array(processed_list, dtype=np.float64))
+
     result_array = np.array(numpy_arrays)
     output_array = result_array.copy()
     for i in range(len(result_array)):
@@ -181,4 +177,10 @@ def BlanketyBlanksAlgoTest(json_data):
         except:
             111
     output_array[np.isnan(output_array)] = 0.0
-    return output_array
+    print(type(output_array))
+    python_list = output_array.tolist()
+    # # 构造 JSON 对象
+    result = {"answer": python_list}
+    # 转换为 JSON 字符串
+    json_output = json.dumps(result, indent=2)
+    return json_output
