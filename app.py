@@ -79,7 +79,8 @@ def sailing_club():
     try:
         data = request.json
         handler = SailingClubHandler()
-        return jsonify(handler.handle_request(data)), 200
+        # return jsonify(handler.handle_request(data)), 200
+        return handler.handle_request(data), 200
 
     except Exception as e:
         return jsonify({"error": str(e)}), 400
