@@ -87,7 +87,7 @@ def final_firewall(json_data):
     arr = reverse(redacted, transformations)
     ans = dict()
     ans["challenge_one"] = arr
-    ans["challenge_two"] = 3
+    ans["challenge_two"] = '3'
     ans["challenge_three"] = ""
     ans["challenge_four"] = ""
     return ans 
