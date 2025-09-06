@@ -59,15 +59,25 @@ def princess_diaries(input_data: dict) -> dict:
             - schedule: 按开始时间排序的任务名称列表
     """
     try:
+        # 验证输入数据格式
+        validation_result = _validate_input_data(input_data)
+        if not validation_result['valid']:
+            return {
+                'error': f"输入数据格式错误: {validation_result['error']}",
+                'max_score': 0,
+                'min_fee': 0,
+                'schedule': []
+            }
+        
         # 解析输入数据并创建Task对象
         tasks = []
         for task_data in input_data['tasks']:
             task = Task(
-                name=task_data['name'],
-                start=task_data['start'],
-                end=task_data['end'],
-                station=task_data['station'],
-                score=task_data['score']
+                name=str(task_data['name']),
+                start=int(task_data['start']),
+                end=int(task_data['end']),
+                station=int(task_data['station']),
+                score=int(task_data['score'])
             )
             tasks.append(task)
         
@@ -75,8 +85,8 @@ def princess_diaries(input_data: dict) -> dict:
         routes = []
         for route_data in input_data['subway']:
             route = Route(
-                connection=route_data['connection'],
-                fee=route_data['fee']
+                connection=[int(x) for x in route_data['connection']],
+                fee=int(route_data['fee'])
             )
             routes.append(route)
         
@@ -84,7 +94,7 @@ def princess_diaries(input_data: dict) -> dict:
         input_obj = Input(
             tasks=tasks,
             subway=routes,
-            starting_station=input_data['starting_station']
+            starting_station=int(input_data['starting_station'])
         )
         
         # 创建调度器并求解
@@ -114,6 +124,109 @@ def princess_diaries(input_data: dict) -> dict:
             'min_fee': 0,
             'schedule': []
         }
+
+
+def _validate_input_data(input_data: dict) -> dict:
+    """
+    验证输入数据格式是否正确
+    
+    Args:
+        input_data: 待验证的输入数据
+        
+    Returns:
+        包含valid(布尔值)和error(错误信息)的字典
+    """
+    try:
+        # 检查是否为字典
+        if not isinstance(input_data, dict):
+            return {'valid': False, 'error': '输入数据必须是字典格式'}
+        
+        # 检查必需字段
+        required_fields = ['tasks', 'subway', 'starting_station']
+        for field in required_fields:
+            if field not in input_data:
+                return {'valid': False, 'error': f'缺少必需字段: {field}'}
+        
+        # 验证tasks字段
+        if not isinstance(input_data['tasks'], list):
+            return {'valid': False, 'error': 'tasks字段必须是列表'}
+        
+        if len(input_data['tasks']) == 0:
+            return {'valid': False, 'error': 'tasks列表不能为空'}
+        
+        # 验证每个任务
+        for i, task_data in enumerate(input_data['tasks']):
+            if not isinstance(task_data, dict):
+                return {'valid': False, 'error': f'tasks[{i}]必须是字典'}
+            
+            task_required_fields = ['name', 'start', 'end', 'station', 'score']
+            for field in task_required_fields:
+                if field not in task_data:
+                    return {'valid': False, 'error': f'tasks[{i}]缺少字段: {field}'}
+            
+            # 验证字段类型
+            if not isinstance(task_data['name'], str):
+                return {'valid': False, 'error': f'tasks[{i}].name必须是字符串'}
+            
+            for field in ['start', 'end', 'station', 'score']:
+                if not isinstance(task_data[field], (int, float)):
+                    return {'valid': False, 'error': f'tasks[{i}].{field}必须是数字'}
+                # 转换为整数
+                task_data[field] = int(task_data[field])
+            
+            # 验证时间逻辑
+            if task_data['start'] >= task_data['end']:
+                return {'valid': False, 'error': f'tasks[{i}]的开始时间必须小于结束时间'}
+            
+            if task_data['start'] < 0 or task_data['end'] < 0:
+                return {'valid': False, 'error': f'tasks[{i}]的时间不能为负数'}
+        
+        # 验证subway字段
+        if not isinstance(input_data['subway'], list):
+            return {'valid': False, 'error': 'subway字段必须是列表'}
+        
+        if len(input_data['subway']) == 0:
+            return {'valid': False, 'error': 'subway列表不能为空'}
+        
+        # 验证每个地铁路线
+        for i, route_data in enumerate(input_data['subway']):
+            if not isinstance(route_data, dict):
+                return {'valid': False, 'error': f'subway[{i}]必须是字典'}
+            
+            route_required_fields = ['connection', 'fee']
+            for field in route_required_fields:
+                if field not in route_data:
+                    return {'valid': False, 'error': f'subway[{i}]缺少字段: {field}'}
+            
+            # 验证connection字段
+            if not isinstance(route_data['connection'], list):
+                return {'valid': False, 'error': f'subway[{i}].connection必须是列表'}
+            
+            if len(route_data['connection']) != 2:
+                return {'valid': False, 'error': f'subway[{i}].connection必须包含两个元素'}
+            
+            for j, station in enumerate(route_data['connection']):
+                if not isinstance(station, (int, float)):
+                    return {'valid': False, 'error': f'subway[{i}].connection[{j}]必须是数字'}
+                route_data['connection'][j] = int(station)
+            
+            # 验证fee字段
+            if not isinstance(route_data['fee'], (int, float)):
+                return {'valid': False, 'error': f'subway[{i}].fee必须是数字'}
+            route_data['fee'] = int(route_data['fee'])
+            
+            if route_data['fee'] < 0:
+                return {'valid': False, 'error': f'subway[{i}].fee不能为负数'}
+        
+        # 验证starting_station字段
+        if not isinstance(input_data['starting_station'], (int, float)):
+            return {'valid': False, 'error': 'starting_station必须是数字'}
+        input_data['starting_station'] = int(input_data['starting_station'])
+        
+        return {'valid': True, 'error': None}
+        
+    except Exception as e:
+        return {'valid': False, 'error': f'验证过程中发生错误: {str(e)}'}
 
 
 class PrincessScheduler:
