@@ -64,7 +64,7 @@ def solve_princess_diaries(input_data: dict) -> dict:
     
     # 使用简单贪心算法快速求解（避免超时）
 
-    optimal_result = _solve_greedy(tasks, graph, distance_matrix, station_to_idx, starting_station)
+    optimal_result = _solve_with_heuristic(tasks, graph, distance_matrix, station_to_idx, starting_station)
     # 返回字典格式的结果
     result = {
         'max_score': optimal_result['max_score'],
@@ -358,3 +358,95 @@ def _solve_greedy(tasks: List[Dict], graph: nx.Graph, distance_matrix: np.ndarra
         }
     except Exception:
         return {'max_score': 0, 'min_fee': 0, 'schedule': []}
+
+def _solve_with_heuristic(tasks: List[Dict], graph: nx.Graph, distance_matrix: np.ndarray,
+                         station_to_idx: Dict[int, int], starting_station: int, 
+                         max_iterations: int = 100) -> Dict:
+    """
+    使用启发式算法求解（贪心 + 局部搜索）
+    
+    Args:
+        max_iterations: 最大迭代次数
+        
+    Returns:
+        包含max_score, min_fee, schedule的字典
+    """
+    if not tasks:
+        return {'max_score': 0, 'min_fee': 0, 'schedule': []}
+    
+    # 贪心算法：按权重/时间比例排序
+    def task_priority(task):
+        duration = task['end'] - task['start']
+        return task['score'] / max(duration, 1)
+    
+    sorted_tasks = sorted(tasks, key=task_priority, reverse=True)
+    
+    # 贪心选择
+    current_schedule = []
+    for task in sorted_tasks:
+        if all(_is_compatible(task, scheduled_task) for scheduled_task in current_schedule):
+            current_schedule.append(task)
+    
+    best_schedule = current_schedule.copy()
+    best_score = _calculate_score(best_schedule)
+    best_cost = _calculate_travel_cost(best_schedule, distance_matrix, station_to_idx, starting_station)
+    
+    # 局部搜索优化
+    for _ in range(max_iterations):
+        # 尝试添加新任务
+        for task in tasks:
+            if task not in current_schedule:
+                # 检查是否可以添加
+                can_add = all(_is_compatible(task, scheduled_task) for scheduled_task in current_schedule)
+                if can_add:
+                    new_schedule = current_schedule + [task]
+                    new_score = _calculate_score(new_schedule)
+                    new_cost = _calculate_travel_cost(new_schedule, distance_matrix, station_to_idx, starting_station)
+                    
+                    # 如果得分更高，或者得分相同但费用更低
+                    if (new_score > best_score or 
+                        (new_score == best_score and new_cost < best_cost)):
+                        best_schedule = new_schedule.copy()
+                        best_score = new_score
+                        best_cost = new_cost
+                        current_schedule = new_schedule.copy()
+                        break
+        
+        # 尝试移除任务并添加其他任务
+        if len(current_schedule) > 0:
+            # 随机移除一个任务
+            remove_idx = np.random.randint(0, len(current_schedule))
+            removed_task = current_schedule.pop(remove_idx)
+            
+            # 尝试添加其他任务
+            for task in tasks:
+                if task != removed_task and task not in current_schedule:
+                    can_add = all(_is_compatible(task, scheduled_task) for scheduled_task in current_schedule)
+                    if can_add:
+                        new_schedule = current_schedule + [task]
+                        new_score = _calculate_score(new_schedule)
+                        new_cost = _calculate_travel_cost(new_schedule, distance_matrix, station_to_idx, starting_station)
+                        
+                        if (new_score > best_score or 
+                            (new_score == best_score and new_cost < best_cost)):
+                            best_schedule = new_schedule.copy()
+                            best_score = new_score
+                            best_cost = new_cost
+                            current_schedule = new_schedule.copy()
+                            break
+            
+            # 如果没找到更好的，恢复移除的任务
+            if removed_task not in current_schedule:
+                can_add = all(_is_compatible(removed_task, scheduled_task) for scheduled_task in current_schedule)
+                if can_add:
+                    current_schedule.append(removed_task)
+    
+    # 按开始时间排序任务名称（升序）
+    schedule = sorted([task['name'] for task in best_schedule], 
+                     key=lambda name: next(t['start'] for t in best_schedule if t['name'] == name))
+    
+    return {
+        'max_score': int(best_score) if not np.isnan(best_score) and not np.isinf(best_score) else 0,
+        'min_fee': int(best_cost) if not np.isnan(best_cost) and not np.isinf(best_cost) else 0,
+        'schedule': schedule
+    }
