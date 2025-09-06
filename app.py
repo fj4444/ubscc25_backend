@@ -6,7 +6,7 @@ from trade import LatexFormulaEvaluator
 from princess_diaries_v1 import solve_princess_diaries
 from spy import investigate
 from sail import SailingClubHandler
-from micro-mouse import MouseState, apply_token
+from micromouse import MouseState, apply_token
 from flask_cors import CORS # 导入 CORS 模块
 
 app = Flask(__name__)
