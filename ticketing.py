@@ -1,8 +1,4 @@
-from flask import Flask, request, jsonify
 from math import sqrt
-import json
-
-app = Flask(__name__)
 
 def calculate_distance(coords1, coords2):
     """
@@ -24,52 +20,43 @@ def get_latency_points(distance):
     # 确保分数不超过30，并返回整数
     return min(30, points)
 
-@app.route('/ticketing-agent', methods=['POST'])
-def ticketing_agent():
-    try:
-        data = request.json
-        customers = data.get('customers', [])
-        concerts = data.get('concerts', [])
-        priority_map = data.get('priority', {})
+def agent(json):
+    customers = json.get('customers', [])
+    concerts = json.get('concerts', [])
+    priority_map = json.get('priority', {})
 
-        result = {}
-        for customer in customers:
-            max_score = -1
-            best_concert_name = ""
-            customer_name = customer['name']
-            customer_location = tuple(customer['location'])
-            customer_vip = customer['vip_status']
-            customer_credit_card = customer['credit_card']
+    result = {}
+    for customer in customers:
+        max_score = -1
+        best_concert_name = ""
+        customer_name = customer['name']
+        customer_location = tuple(customer['location'])
+        customer_vip = customer['vip_status']
+        customer_credit_card = customer['credit_card']
 
-            for concert in concerts:
-                current_score = 0
-                concert_name = concert['name']
-                concert_location = tuple(concert['booking_center_location'])
+        for concert in concerts:
+            current_score = 0
+            concert_name = concert['name']
+            concert_location = tuple(concert['booking_center_location'])
 
-                # Factor 1: VIP Status
-                if customer_vip:
-                    current_score += 100
+            # Factor 1: VIP Status
+            if customer_vip:
+                current_score += 100
 
-                # Factor 2: Credit Card Priority
-                if priority_map.get(customer_credit_card) == concert_name:
-                    current_score += 50
+            # Factor 2: Credit Card Priority
+            if priority_map.get(customer_credit_card) == concert_name:
+                current_score += 50
 
-                # Factor 3: Latency
-                distance = calculate_distance(customer_location, concert_location)
-                # print(f"Distance from {customer_name} to {concert_name}: {distance}")
-                current_score += get_latency_points(distance)
-                # print(f"Latency points for {customer_name} to {concert_name}: {get_latency_points(distance)}")
+            # Factor 3: Latency
+            distance = calculate_distance(customer_location, concert_location)
+            # print(f"Distance from {customer_name} to {concert_name}: {distance}")
+            current_score += get_latency_points(distance)
+            # print(f"Latency points for {customer_name} to {concert_name}: {get_latency_points(distance)}")
 
-                if current_score > max_score:
-                    max_score = current_score
-                    best_concert_name = concert_name
+            if current_score > max_score:
+                max_score = current_score
+                best_concert_name = concert_name
 
-            result[customer_name] = best_concert_name
+        result[customer_name] = best_concert_name
 
-        return jsonify(result), 200
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 400
-
-if __name__ == '__main__':
-    app.run(debug=True)
+    return result
