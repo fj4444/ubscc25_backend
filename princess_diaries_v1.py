@@ -166,7 +166,7 @@ class PrincessScheduler:
     
     def solve_optimal_schedule(self) -> Output:
         """
-        求解最优调度方案
+        求解最优调度方案 - 使用动态规划求解最大权重独立集问题
         
         Returns:
             Output对象包含最大得分、最小交通费用和任务调度
@@ -174,55 +174,58 @@ class PrincessScheduler:
         if not self.tasks:
             return Output(max_score=0, min_fee=0, schedule=[])
         
-        # 获取兼容任务信息
-        compatible = self._get_compatible_tasks(self.tasks)
-        
-        # 使用动态规划求解最大权重独立集问题
-        n = len(self.tasks)
-        
         # 按结束时间排序任务
         sorted_tasks = sorted(self.tasks, key=lambda t: t.end)
+        n = len(sorted_tasks)
         
         # dp[i] = 考虑前i个任务时的最大得分
         dp = [0] * (n + 1)
-        prev = [-1] * (n + 1)
+        choice = [False] * (n + 1)  # choice[i] 表示是否选择了第i个任务
         
         for i in range(1, n + 1):
             current_task = sorted_tasks[i - 1]
             
             # 不选择当前任务
             dp[i] = dp[i - 1]
-            prev[i] = i - 1
+            choice[i] = False
             
             # 选择当前任务
             # 找到最后一个与当前任务兼容的任务
             last_compatible = -1
-            for j in range(i - 1, -1, -1):
-                if self._is_compatible(sorted_tasks[j], current_task):
-                    last_compatible = j
+            for j in range(i - 1, 0, -1):
+                if self._is_compatible(sorted_tasks[j - 1], current_task):
+                    last_compatible = j - 1
                     break
             
-            # 如果找到兼容的任务，或者这是第一个任务
-            if last_compatible != -1 or i == 1:
-                if last_compatible == -1:
-                    # 第一个任务，没有前置任务
-                    score_with_current = current_task.score
-                else:
-                    score_with_current = dp[last_compatible + 1] + current_task.score
-                
-                if score_with_current > dp[i]:
-                    dp[i] = score_with_current
-                    prev[i] = last_compatible + 1 if last_compatible != -1 else 0
+            # 计算选择当前任务的得分
+            if last_compatible == -1:
+                # 没有兼容的前置任务，可以选择当前任务
+                score_with_current = current_task.score
+            else:
+                # 有兼容的前置任务
+                score_with_current = dp[last_compatible + 1] + current_task.score
+            
+            # 如果选择当前任务更好
+            if score_with_current > dp[i]:
+                dp[i] = score_with_current
+                choice[i] = True
         
         # 重构最优解
         optimal_tasks = []
         i = n
         while i > 0:
-            if prev[i] != i - 1:  # 选择了第i-1个任务
+            if choice[i]:  # 选择了第i个任务
                 optimal_tasks.append(sorted_tasks[i - 1])
-                if prev[i] == 0:
+                # 找到最后一个兼容的任务
+                last_compatible = -1
+                for j in range(i - 1, 0, -1):
+                    if self._is_compatible(sorted_tasks[j - 1], sorted_tasks[i - 1]):
+                        last_compatible = j - 1
+                        break
+                if last_compatible == -1:
                     break
-                i = prev[i]
+                else:
+                    i = last_compatible + 1
             else:
                 i = i - 1
         
@@ -384,34 +387,21 @@ def create_sample_input() -> Input:
     """创建示例输入数据"""
     # 创建示例任务
     tasks = [
-        Task(name="Task1", start=0, end=5, station=1, score=10),
-        Task(name="Task2", start=6, end=10, station=3, score=15),
-        Task(name="Task3", start=2, end=7, station=5, score=8),
-        Task(name="Task4", start=8, end=12, station=7, score=12),
-        Task(name="Task5", start=11, end=15, station=9, score=20),
-        Task(name="Task6", start=1, end=4, station=2, score=6),
-        Task(name="Task7", start=3, end=8, station=4, score=9),
-        Task(name="Task8", start=9, end=13, station=6, score=7),
-        Task(name="Task9", start=14, end=18, station=8, score=11),
+        Task(name="A", start=480, end=540, station=1, score=2),
+        Task(name="B", start=600, end=660, station=2, score=1),
+        Task(name="C", start=720, end=780, station=3, score=3),
+        Task(name="D", start=840, end=900, station=4, score=1),
+        Task(name="E", start=960, end=1020, station=1, score=4),
+        Task(name="F", start=530, end=590, station=2, score=1),
     ]
+    
     
     # 创建示例地铁路线
     routes = [
-        Route(connection=[0, 1], fee=5),
-        Route(connection=[0, 2], fee=3),
-        Route(connection=[1, 3], fee=4),
-        Route(connection=[2, 3], fee=2),
-        Route(connection=[2, 4], fee=6),
-        Route(connection=[3, 5], fee=3),
-        Route(connection=[4, 5], fee=4),
-        Route(connection=[4, 6], fee=5),
-        Route(connection=[5, 7], fee=2),
-        Route(connection=[6, 7], fee=3),
-        Route(connection=[6, 8], fee=4),
-        Route(connection=[7, 9], fee=3),
-        Route(connection=[8, 9], fee=2),
-        Route(connection=[0, 9], fee=8),
-        Route(connection=[1, 8], fee=7),
+        Route(connection=[0, 1], fee=10),
+        Route(connection=[1, 2], fee=10),
+        Route(connection=[2, 3], fee=20),
+        Route(connection=[3, 4], fee=30),
     ]
     
     return Input(
