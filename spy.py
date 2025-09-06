@@ -1,7 +1,7 @@
 def find_extra_channels(network):
     """
     找出间谍网络中的额外连接
-    根据期望结果，原始网络应该是一个链式结构
+    使用最小生成树算法找出原始网络，其他边都是冗余的
     """
     # 构建边列表
     edges = []
@@ -16,9 +16,8 @@ def find_extra_channels(network):
         all_spies.add(edge[0])
         all_spies.add(edge[1])
     
-    # 根据期望结果，原始网络应该是：Ningning -> Karina
-    # 其他所有边都是冗余的
-    original_edges = {("Karina", "Ningning"), ("Ningning", "Karina")}
+    # 使用Kruskal算法找最小生成树（原始网络）
+    original_edges = find_minimum_spanning_tree(edges, all_spies)
     
     # 找出所有不在原始网络中的边
     redundant_edges = []
@@ -28,6 +27,40 @@ def find_extra_channels(network):
             redundant_edges.append({"spy1": spy1, "spy2": spy2})
     
     return redundant_edges
+
+def find_minimum_spanning_tree(edges, nodes):
+    """
+    使用Kruskal算法找最小生成树
+    这里我们假设所有边的权重都是1，所以实际上是在找连通所有节点的最小边集
+    """
+    # 初始化并查集
+    parent = {node: node for node in nodes}
+    
+    def find(x):
+        if parent[x] != x:
+            parent[x] = find(parent[x])
+        return parent[x]
+    
+    def union(x, y):
+        px, py = find(x), find(y)
+        if px != py:
+            parent[px] = py
+            return True
+        return False
+    
+    # 按边的字典序排序（确保结果的一致性）
+    sorted_edges = sorted(edges)
+    
+    mst_edges = set()
+    for edge in sorted_edges:
+        spy1, spy2 = edge
+        if union(spy1, spy2):
+            mst_edges.add(edge)
+            # 如果已经连通了所有节点，可以提前结束
+            if len(mst_edges) == len(nodes) - 1:
+                break
+    
+    return mst_edges
 
 def investigate(networks_data):
     """
