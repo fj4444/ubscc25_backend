@@ -112,8 +112,8 @@ def final_trading(json_data):
     for i in indices:
         d = dict()
         d["id"] = ids[i]
-        d["decision"] = "SHORT"
+        d["decision"] = "LONG"
         if scores[i] > 0:
-            d["decision"] = "LONG"
+            d["decision"] = "SHORT"
         ans.append(d)
     return ans
