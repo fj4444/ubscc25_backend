@@ -39,6 +39,83 @@ class Output:
     schedule: List[str]         # 任务调度（按开始时间排序的任务名称）
 
 
+def princess_diaries(input_data: dict) -> dict:
+    """
+    公主日记任务调度优化 - 主要结果输出函数
+    
+    这个函数是解决Princess Diaries问题的核心入口，使用动态规划算法
+    求解在时间约束下的最优任务调度方案，最大化得分并最小化交通费用。
+    
+    Args:
+        input_data: 包含以下键的字典
+            - tasks: 任务列表，每个任务包含name, start, end, station, score
+            - subway: 地铁路线列表，每个路线包含connection和fee
+            - starting_station: 起始车站ID
+        
+    Returns:
+        包含以下键的字典:
+            - max_score: 最大可能得分
+            - min_fee: 最小交通费用
+            - schedule: 按开始时间排序的任务名称列表
+    """
+    try:
+        # 解析输入数据并创建Task对象
+        tasks = []
+        for task_data in input_data['tasks']:
+            task = Task(
+                name=task_data['name'],
+                start=task_data['start'],
+                end=task_data['end'],
+                station=task_data['station'],
+                score=task_data['score']
+            )
+            tasks.append(task)
+        
+        # 创建Route对象
+        routes = []
+        for route_data in input_data['subway']:
+            route = Route(
+                connection=route_data['connection'],
+                fee=route_data['fee']
+            )
+            routes.append(route)
+        
+        # 创建Input对象
+        input_obj = Input(
+            tasks=tasks,
+            subway=routes,
+            starting_station=input_data['starting_station']
+        )
+        
+        # 创建调度器并求解
+        scheduler = PrincessScheduler(input_obj)
+        
+        # 使用动态规划求解最优解
+        optimal_output = scheduler.solve_optimal_schedule()
+        
+        # 如果动态规划解不够好，尝试启发式算法
+        if len(optimal_output.schedule) == 0 or optimal_output.max_score == 0:
+            heuristic_output = scheduler.solve_with_heuristic()
+            if heuristic_output.max_score > optimal_output.max_score:
+                optimal_output = heuristic_output
+        
+        # 返回字典格式的结果
+        return {
+            'max_score': optimal_output.max_score,
+            'min_fee': optimal_output.min_fee,
+            'schedule': optimal_output.schedule
+        }
+        
+    except Exception as e:
+        # 错误处理
+        return {
+            'error': f"处理输入数据时发生错误: {str(e)}",
+            'max_score': 0,
+            'min_fee': 0,
+            'schedule': []
+        }
+
+
 class PrincessScheduler:
     """公主任务调度器"""
     
@@ -328,9 +405,10 @@ class PrincessScheduler:
         )
 
 
+# 向后兼容函数
 def solve_princess_diaries(input_data: dict) -> dict:
     """
-    解决Princess Diaries问题的入口函数
+    解决Princess Diaries问题的入口函数（向后兼容）
     
     Args:
         input_data: 包含tasks, subway, starting_station的字典
@@ -338,44 +416,7 @@ def solve_princess_diaries(input_data: dict) -> dict:
     Returns:
         包含max_score, min_fee, schedule的字典
     """
-    # 解析输入数据并创建Task对象
-    tasks = []
-    for task_data in input_data['tasks']:
-        task = Task(
-            name=task_data['name'],
-            start=task_data['start'],
-            end=task_data['end'],
-            station=task_data['station'],
-            score=task_data['score']
-        )
-        tasks.append(task)
-    
-    # 创建Route对象
-    routes = []
-    for route_data in input_data['subway']:
-        route = Route(
-            connection=route_data['connection'],
-            fee=route_data['fee']
-        )
-        routes.append(route)
-    
-    # 创建Input对象
-    input_obj = Input(
-        tasks=tasks,
-        subway=routes,
-        starting_station=input_data['starting_station']
-    )
-    
-    # 创建调度器并求解
-    scheduler = PrincessScheduler(input_obj)
-    output = scheduler.solve_optimal_schedule()
-    
-    # 返回字典格式的结果
-    return {
-        'max_score': output.max_score,
-        'min_fee': output.min_fee,
-        'schedule': output.schedule
-    }
+    return princess_diaries(input_data)
 
 
 def create_sample_input() -> Input:
@@ -389,7 +430,6 @@ def create_sample_input() -> Input:
         Task(name="E", start=960, end=1020, station=1, score=4),
         Task(name="F", start=530, end=590, station=2, score=1),
     ]
-    
     
     # 创建示例地铁路线
     routes = [
@@ -448,7 +488,7 @@ if __name__ == "__main__":
     print()
     
     # 测试主函数
-    print("=== 测试主函数 ===")
+    print("=== 测试 princess_diaries 主函数 ===")
     input_dict = {
         'tasks': [
             {'name': task.name, 'start': task.start, 'end': task.end, 'station': task.station, 'score': task.score}
@@ -461,5 +501,10 @@ if __name__ == "__main__":
         'starting_station': sample_input.starting_station
     }
     
-    result = solve_princess_diaries(input_dict)
-    print(f"主函数结果: {result}")
+    result = princess_diaries(input_dict)
+    print(f"princess_diaries 主函数结果: {result}")
+    
+    # 测试向后兼容函数
+    print("\n=== 测试向后兼容函数 ===")
+    result2 = solve_princess_diaries(input_dict)
+    print(f"solve_princess_diaries 结果: {result2}")
