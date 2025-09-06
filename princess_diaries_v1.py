@@ -70,6 +70,7 @@ def solve_princess_diaries(input_data: dict) -> dict:
         'max_score': optimal_result['max_score'],
         'min_fee': optimal_result['min_fee'],
         'schedule': optimal_result['schedule']
+    }
     
     return result
 
