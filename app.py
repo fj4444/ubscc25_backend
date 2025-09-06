@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 from ticketing import agent
-from BlanketyBlanksAlgo import BlanketyBlanksAlgoTest
+# from BlanketyBlanksAlgo import BlanketyBlanksAlgoTest
+from bbnew import BlanketyBlanksAlgoTest
 from trade import LatexFormulaEvaluator
 from princess_diaries_v1 import princess_diaries
 from spy import investigate
