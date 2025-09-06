@@ -57,7 +57,7 @@ class TradingBot:
         sma_long = np.mean(prev_closes) if prev_closes else 0
         
         # Price trend (1 for uptrend, -1 for downtrend)
-        trend = 1 if obs_closes[-1] > prev_closes[0] else -1
+        trend = obs_closes[-1] / (prev_closes[0] + 1e-12) - 1
         
         # Volatility (standard deviation of returns)
         returns = np.diff(all_closes) / all_closes[:-1]
@@ -84,10 +84,10 @@ class TradingBot:
         
         return sentiment_score, price_analysis['trend'], price_analysis['momentum'], price_analysis['volatility']
     
-def trading_bot_score(data):
+def trading_bot_score(json_data):
     bot = TradingBot(data)
     score, trend, mm, vol = bot.metrics(data)
-    basic = np.sign(score) * max(0, np.sqrt(np.abs(score)) * trend * np.sign(score))
+    basic = np.sqrt(np.abs(score)) * trend * 1e3
     if abs(mm) < 1e-2:
         basic = -basic
     basic *= vol * 1e3
@@ -101,12 +101,10 @@ def get_top50_abs_indices(lst):
     top50_indices = [index for _, index in abs_with_indices[:50]]
     return top50_indices
 
-def final_trading(json_data):
-    # print(f"json_data:{json_data}")
+def final(json_data):
     scores = list()
     ids = list()
     for data in json_data:
-        # print(f"data:{data}")
         ids.append(data["id"])
         scores.append(trading_bot_score(data))
     indices = get_top50_abs_indices(scores)
