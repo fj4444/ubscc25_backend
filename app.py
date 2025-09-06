@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 from ticketing import agent
 from BlanketyBlanksAlgo import BlanketyBlanksAlgoTest
+from trade import LatexFormulaEvaluator
 from spy import investigate
 
 app = Flask(__name__)
@@ -33,6 +34,32 @@ def spy():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 400
+
+@app.route('/trading-formula', methods=['POST'])
+def evaluate_formulas():
+    """
+    处理 POST 请求，评估 JSON 输入中的所有公式。
+    """
+    try:
+        data = request.json
+        if not isinstance(data, list):
+            return jsonify({"error": "Expected a JSON array"}), 400
+
+        results = []
+        for case in data:
+            # 从每个测试用例中提取公式和变量
+            formula = case.get("formula")
+            variables = case.get("variables")
+            # 创建评估器实例并计算结果
+            evaluator = LatexFormulaEvaluator(formula, variables)
+            result = evaluator.evaluate()
+            # 将结果添加到列表中
+            results.append({"result": result})
+
+        return jsonify(results)
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
