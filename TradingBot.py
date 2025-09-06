@@ -117,5 +117,5 @@ def final_trading(json_data):
         d["decision"] = "SHORT"
         if scores[i] > 0:
             d["decision"] = "LONG"
-    ans.append(d)
+        ans.append(d)
     return ans
