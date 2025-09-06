@@ -6,6 +6,7 @@ from trade import LatexFormulaEvaluator
 from princess_diaries_v1 import solve_princess_diaries
 from spy import investigate
 from sail import SailingClubHandler
+from micromouse import process_micromouse_request
 from flask_cors import CORS # 导入 CORS 模块
 
 app = Flask(__name__)
@@ -165,6 +166,27 @@ def handle_2048():
         "endGame": end_game
     }
     return jsonify(response)
+
+@app.route("/micro-mouse", methods=["POST"])
+def micro_mouse_api():
+    """
+    微鼠竞赛API端点
+    处理微鼠的移动指令请求
+    """
+    try:
+        data = request.json
+        if not data:
+            return jsonify({"error": "请求数据不能为空"}), 400
+        
+        # 调用微鼠控制器处理请求
+        result = process_micromouse_request(data)
+        
+        # 直接返回结果（已经是正确的JSON格式）
+        return jsonify(result), 200
+        
+    except Exception as e:
+        return jsonify({"error": f"微鼠控制器错误: {str(e)}"}), 500
+
 
 if __name__ == '__main__':
     app.run(debug=True)
