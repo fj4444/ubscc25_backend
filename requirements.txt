@@ -9,5 +9,5 @@ matplotlib
 statsmodels
 scikit-learn
 pykalman
-
+flask-cors
 networkx
