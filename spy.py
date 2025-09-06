@@ -35,7 +35,18 @@ def investigate(networks_data):
     """
     result = {"networks": []}
     
-    for network_data in networks_data['networks']:
+    # 检查输入数据的格式
+    if isinstance(networks_data, list):
+        # 如果直接是网络列表
+        networks_list = networks_data
+    elif isinstance(networks_data, dict) and 'networks' in networks_data:
+        # 如果是包含networks键的字典
+        networks_list = networks_data['networks']
+    else:
+        # 如果格式不正确，返回错误
+        return {"error": "Invalid data format. Expected list of networks or dict with 'networks' key."}
+    
+    for network_data in networks_list:
         network_id = network_data['networkId']
         network = network_data['network']
         
