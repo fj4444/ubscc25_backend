@@ -25,12 +25,13 @@ def sort_numerals_1(nums):
     return converted
 
 def parse_english(s):
+    s = s.replace(',', '')
     # Predefine a dictionary of English number words
     words = {
         "zero": 0, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7, "eight": 8, "nine": 9,
         "ten": 10, "eleven": 11, "twelve": 12, "thirteen": 13, "fourteen": 14, "fifteen": 15, "sixteen": 16, "seventeen": 17, "eighteen": 18, "nineteen": 19,
         "twenty": 20, "thirty": 30, "forty": 40, "fifty": 50, "sixty": 60, "seventy": 70, "eighty": 80, "ninety": 90,
-        "hundred": 100, "thousand": 1000, "million": 1000000, "hundreds": 100, "thousands": 1000, "millions": 1000000
+        "hundred": 100, "thousand": 1000, "million": 1000000, "hundreds": 100, "thousands": 1000, "millions": 1000000, "and": 0
     }
     
     # Split the string into tokens by spaces? But if no spaces, we need to segment.
@@ -66,19 +67,31 @@ def parse_chinese(s):
     
     total = 0
     current = 0
+    section = 0  # 用于处理万、亿等大单位
+    
     for char in s:
         if char in digits:
             current = digits[char]
         elif char in multipliers:
             multiplier = multipliers[char]
-            if current == 0:
-                current = 1
-            total += current * multiplier
-            current = 0
+            
+            # 处理十、百、千等小单位
+            if multiplier < 10000:
+                if current == 0:
+                    current = 1
+                section += current * multiplier
+                current = 0
+            # 处理万、亿等大单位
+            else:
+                if current == 0 and section == 0:
+                    section = 1
+                total += (section + current) * multiplier
+                section = 0
+                current = 0
         else:
-            return None  # invalid
-    total += current
-    return total
+            return None  # invalid character
+    
+    return total + section + current
 
 def parse_german(s):
     # Dictionary of German number words
@@ -184,6 +197,6 @@ def process(json_data):
         py_results = sort_numerals_2(nums)
         result = {"sortedList": py_results}
         # json_output = json.dumps(result, indent=2)
-        # return json_output
         return result
     return None
+
