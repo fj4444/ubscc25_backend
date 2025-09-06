@@ -7,24 +7,6 @@ import time
 
 
 def solve_princess_diaries(input_data: dict) -> dict:
-"""
-公主日记任务调度优化 - 主要结果输出函数
-
-这个函数是解决Princess Diaries问题的核心入口，使用动态规划算法
-求解在时间约束下的最优任务调度方案，最大化得分并最小化交通费用。
-
-Args:
-    input_data: 包含以下键的字典
-        - tasks: 任务列表，每个任务包含name, start, end, station, score
-        - subway: 地铁路线列表，每个路线包含connection和fee
-        - starting_station: 起始车站ID
-    
-Returns:
-    包含以下键的字典:
-        - max_score: 最大可能得分
-        - min_fee: 最小交通费用
-        - schedule: 按开始时间排序的任务名称列表
-"""
     # 验证输入数据格式
     validation_result = _validate_input_data(input_data)
     if not validation_result['valid']:
