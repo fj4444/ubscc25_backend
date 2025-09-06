@@ -62,8 +62,8 @@ def final(json_data):
     ans = list()
     for d in json_data:
         ans.append(process(d))
-    json_output = json.dumps(ans, indent=2)
-    return json_output
+    # json_output = json.dumps(ans, indent=2)
+    return ans
 
 
 if __name__ == "__main__":

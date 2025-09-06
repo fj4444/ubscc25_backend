@@ -101,7 +101,6 @@ from InkArchive import final
 def The_Ink_Archive():
     try:
         data = request.json
-        # print(final(data))
         return jsonify(final(data)),200
 
     except Exception as e:
