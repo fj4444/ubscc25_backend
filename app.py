@@ -118,60 +118,44 @@ def trading_bot():
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
-@app.route('/2048', methods=['POST'])
-def handle_2048():
-    """
-    处理来自前端的 2048 游戏请求。
-    """
-    # 确保请求体是 JSON 格式
-    if not request.is_json:
-        return jsonify({"error": "请求体必须是 JSON 格式"}), 400
+from mage import process
+@app.route('/the-mages-gambit',methods=['POST'])
+def mage_time():
+    try:
+        data = request.json
+        return jsonify(process(data)), 200
 
-    # 从请求中获取网格和移动方向
-    data = request.get_json()
-    grid = data.get('grid')
-    direction = data.get('mergeDirection')
-
-    # 简单的输入验证
-    if not grid or not direction:
-        return jsonify({"error": "缺少 'grid' 或 'mergeDirection' 参数"}), 400
-
-    # 调用核心游戏逻辑处理函数
-    next_grid, end_game = process_grid(grid, direction)
-
-    # 构造并返回响应
-    response = {
-        "nextGrid": next_grid,
-        "endGame": end_game
-    }
-    return jsonify(response)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
 
 
-@app.route('/sailing-club/<username>', methods=['GET', 'POST'])
-def show_user_profile(username):
+# @app.route('/2048', methods=['POST'])
+# def handle_2048():
+#     """
+#     处理来自前端的 2048 游戏请求。
+#     """
+#     # 确保请求体是 JSON 格式
+#     if not request.is_json:
+#         return jsonify({"error": "请求体必须是 JSON 格式"}), 400
 
-    # 获取完整的路由规则
+#     # 从请求中获取网格和移动方向
+#     data = request.get_json()
+#     grid = data.get('grid')
+#     direction = data.get('mergeDirection')
 
-    rule = request.url_rule
+#     # 简单的输入验证
+#     if not grid or not direction:
+#         return jsonify({"error": "缺少 'grid' 或 'mergeDirection' 参数"}), 400
 
+#     # 调用核心游戏逻辑处理函数
+#     next_grid, end_game = process_grid(grid, direction)
 
-    print(f"请求的 URL 规则是：{rule.rule}")
-
-    print(f"请求的方法是：{request.method}")
-
-    print(f"请求的 endpoint 是：{rule.endpoint}")
-
-
-    return f"Welcome, {username}!"
-
-@app.route('/<path:path>', methods=['POST'])
-def catch_all_post(path):
-    print("----------------------------")
-    print(f"收到一个 POST 请求，但没有找到匹配的特定 endpoint。")
-    print(f"请求的完整路径是: {request.path}")
-    print("----------------------------")
-    # 这里你可以选择返回一个错误信息，比如404 Not Found
-    return "未找到匹配的接口", 404
+#     # 构造并返回响应
+#     response = {
+#         "nextGrid": next_grid,
+#         "endGame": end_game
+#     }
+#     return jsonify(response)
 
 if __name__ == '__main__':
     app.run(debug=True)
