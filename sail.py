@@ -69,7 +69,7 @@ class SailingClubHandler:
         Returns:
             str: 包含 'solutions' 的响应JSON字符串。
         """
-        print(f"request_body_json:{request_body_json}")
+        # print(f"request_body_json:{request_body_json}")
         try:
 
             request_data = request_body_json

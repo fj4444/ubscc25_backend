@@ -84,5 +84,16 @@ def sailing_club():
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
+from Duolinggo import process
+@app.route('/duolingo-sort', methods=['POST'])
+def duolingo_sort():
+    try:
+        data = request.json
+        processed_data = process(data)
+        return processed_data, 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
 if __name__ == '__main__':
     app.run(debug=True)
