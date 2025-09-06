@@ -68,7 +68,7 @@ def evaluate_formulas():
 def princess_diaries():
     try:
         data = request.json
-        result = princess_diaries(data)
+        result = solve_princess_diaries(data)
         return jsonify(result), 200
         
     except Exception as e:
