@@ -124,25 +124,27 @@ class MicroMouseController:
         walls = [False] * 4  # [北, 东, 南, 西]
         
         if len(sensor_data) >= 5:
-            # 前方传感器 (0°)
+            # 前方传感器 (0°) - 检测当前朝向的墙壁
             if sensor_data[2] == 1:
                 walls[direction.value] = True
             
-            # 左前方传感器 (-45°)
-            left_dir = (direction.value - 1) % 4
+            # 左前方传感器 (-45°) - 检测左前方45度方向的墙壁
+            left_forward_dir = (direction.value - 1) % 4
             if sensor_data[1] == 1:
-                walls[left_dir] = True
+                walls[left_forward_dir] = True
             
-            # 右前方传感器 (+45°)
-            right_dir = (direction.value + 1) % 4
+            # 右前方传感器 (+45°) - 检测右前方45度方向的墙壁
+            right_forward_dir = (direction.value + 1) % 4
             if sensor_data[3] == 1:
-                walls[right_dir] = True
+                walls[right_forward_dir] = True
             
-            # 左侧传感器 (-90°)
+            # 左侧传感器 (-90°) - 检测左侧90度方向的墙壁
+            left_dir = (direction.value - 1) % 4
             if sensor_data[0] == 1:
                 walls[left_dir] = True
             
-            # 右侧传感器 (+90°)
+            # 右侧传感器 (+90°) - 检测右侧90度方向的墙壁
+            right_dir = (direction.value + 1) % 4
             if sensor_data[4] == 1:
                 walls[right_dir] = True
         
@@ -256,39 +258,32 @@ class MicroMouseController:
         if self.is_in_goal(state.position) and state.momentum == 0:
             return instructions
         
-        # 获取最优方向
-        optimal_direction = self.get_optimal_direction(state.position, sensor_data, state.direction)
-        
-        if optimal_direction is None:
-            # 没有可用方向，尝试转向
-            if state.momentum == 0:
-                instructions.append('L')  # 尝试左转
-            else:
-                instructions.append('BB')  # 刹车
-            return instructions
-        
-        # 计算需要转向的角度
-        current_dir = state.direction.value
-        target_dir = optimal_direction.value
-        
-        # 计算转向角度
-        turn_angle = (target_dir - current_dir) % 4
-        
-        # 如果不需要转向
-        if turn_angle == 0:
-            # 根据当前动量和目标优化速度
-            if state.momentum < 1:
-                instructions.append('F2')  # 加速
-            elif state.momentum > 3:
-                instructions.append('F0')  # 减速
-            else:
-                instructions.append('F1')  # 保持
-        else:
-            # 需要转向
+        # 首先检查前方是否有墙壁
+        walls = self.get_wall_directions(sensor_data, state.direction)
+        if walls[state.direction.value]:
+            # 前方有墙壁，需要转向
             if state.momentum != 0:
-                # 先刹车到0
+                # 先刹车
                 instructions.append('BB')
                 return instructions
+            
+            # 寻找可用的方向
+            available_directions = self.get_available_directions(state.position, sensor_data, state.direction)
+            if not available_directions:
+                # 没有可用方向，尝试左转
+                instructions.append('L')
+                return instructions
+            
+            # 选择最优方向
+            optimal_direction = self.get_optimal_direction(state.position, sensor_data, state.direction)
+            if optimal_direction is None:
+                instructions.append('L')
+                return instructions
+            
+            # 计算转向角度
+            current_dir = state.direction.value
+            target_dir = optimal_direction.value
+            turn_angle = (target_dir - current_dir) % 4
             
             # 执行转向
             if turn_angle == 1:
@@ -301,6 +296,16 @@ class MicroMouseController:
             
             # 转向后加速
             instructions.append('F2')
+            return instructions
+        
+        # 前方没有墙壁，可以继续前进
+        # 根据当前动量优化速度
+        if state.momentum < 1:
+            instructions.append('F2')  # 加速
+        elif state.momentum > 3:
+            instructions.append('F0')  # 减速
+        else:
+            instructions.append('F1')  # 保持
         
         return instructions
 
@@ -323,6 +328,119 @@ class MicroMouseController:
         self.visited_positions.clear()
         self.current_position = (0, 0)
         self.current_direction = Direction.NORTH
+
+    def safe_movement_strategy(self, state: MouseState, sensor_data: List[int]) -> List[str]:
+        """安全的移动策略，避免撞墙"""
+        instructions = []
+        
+        # 如果已经到达目标且动量为0，停止
+        if state.reached_goal and state.momentum == 0:
+            return instructions
+        
+        # 如果当前在目标区域内且动量为0，标记为到达
+        if self.is_in_goal(state.position) and state.momentum == 0:
+            return instructions
+        
+        # 检查前方是否有墙壁
+        walls = self.get_wall_directions(sensor_data, state.direction)
+        
+        # 调试信息
+        print(f"位置: {state.position}, 方向: {state.direction.name}, 动量: {state.momentum}")
+        print(f"传感器数据: {sensor_data}")
+        print(f"墙壁检测: 北={walls[0]}, 东={walls[1]}, 南={walls[2]}, 西={walls[3]}")
+        
+        # 如果前方有墙壁，必须转向
+        if walls[state.direction.value]:
+            print("前方有墙壁，需要转向")
+            if state.momentum != 0:
+                # 先刹车
+                print("先刹车")
+                instructions.append('BB')
+                return instructions
+            
+            # 寻找可用的方向
+            available_directions = self.get_available_directions(state.position, sensor_data, state.direction)
+            print(f"可用方向: {[d.name for d in available_directions]}")
+            
+            if not available_directions:
+                # 没有可用方向，尝试左转
+                print("没有可用方向，左转")
+                instructions.append('L')
+                return instructions
+            
+            # 选择最优方向
+            optimal_direction = self.get_optimal_direction(state.position, sensor_data, state.direction)
+            if optimal_direction is None:
+                print("无法找到最优方向，左转")
+                instructions.append('L')
+                return instructions
+            
+            print(f"选择方向: {optimal_direction.name}")
+            
+            # 计算转向角度
+            current_dir = state.direction.value
+            target_dir = optimal_direction.value
+            turn_angle = (target_dir - current_dir) % 4
+            
+            print(f"转向角度: {turn_angle}")
+            
+            # 执行转向
+            if turn_angle == 1:
+                instructions.append('R')
+            elif turn_angle == 2:
+                instructions.append('R')
+                instructions.append('R')
+            elif turn_angle == 3:
+                instructions.append('L')
+            
+            # 转向后加速
+            instructions.append('F2')
+            print(f"生成指令: {instructions}")
+            return instructions
+        
+        # 前方没有墙壁，可以继续前进
+        print("前方没有墙壁，继续前进")
+        # 根据当前动量优化速度
+        if state.momentum < 1:
+            instructions.append('F2')  # 加速
+        elif state.momentum > 3:
+            instructions.append('F0')  # 减速
+        else:
+            instructions.append('F1')  # 保持
+        
+        print(f"生成指令: {instructions}")
+        return instructions
+
+    def simple_safe_strategy(self, state: MouseState, sensor_data: List[int]) -> List[str]:
+        """极简安全策略，只关注避免撞墙"""
+        instructions = []
+        
+        # 如果已经到达目标且动量为0，停止
+        if state.reached_goal and state.momentum == 0:
+            return instructions
+        
+        # 如果当前在目标区域内且动量为0，标记为到达
+        if self.is_in_goal(state.position) and state.momentum == 0:
+            return instructions
+        
+        # 检查前方是否有墙壁
+        walls = self.get_wall_directions(sensor_data, state.direction)
+        
+        # 如果前方有墙壁，必须转向
+        if walls[state.direction.value]:
+            if state.momentum != 0:
+                # 先刹车
+                instructions.append('BB')
+                return instructions
+            
+            # 简单策略：总是左转
+            instructions.append('L')
+            return instructions
+        
+        # 前方没有墙壁，可以继续前进
+        # 简单策略：总是加速
+        instructions.append('F2')
+        return instructions
 
     def process_request(self, request_data: Dict) -> Dict:
         """处理API请求"""
@@ -359,8 +477,8 @@ class MicroMouseController:
                     'end': True
                 }
             
-            # 生成移动指令
-            instructions = self.generate_movement_instructions(state, sensor_data)
+            # 使用极简安全策略
+            instructions = self.simple_safe_strategy(state, sensor_data)
             
             return {
                 'instructions': instructions,
