@@ -73,7 +73,6 @@ def princess_diaries():
         data = request.json
         result = princess_diaries(data)
         return jsonify(result), 200
-        
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
