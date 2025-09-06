@@ -6,6 +6,7 @@ from trade import LatexFormulaEvaluator
 from princess_diaries_v1 import solve_princess_diaries
 from spy import investigate
 from sail import SailingClubHandler
+from micro_mouse import MouseState, apply_token
 from flask_cors import CORS # 导入 CORS 模块
 
 app = Flask(__name__)
@@ -156,6 +157,41 @@ def mage_time():
 #         "endGame": end_game
 #     }
 #     return jsonify(response)
+
+@app.route("/micro-mouse", methods=["POST"])
+def micro_mouse_api():
+    data = request.json
+
+    # 尝试从请求数据重建状态
+    try:
+        state = MouseState.from_dict(data)
+    except Exception as e:
+        return jsonify({"error": f"Invalid state data: {str(e)}", "end": True})
+
+    instructions = data.get("instructions", [])
+
+    if instructions:
+        # Thinking time per batch
+        state.run_time_ms += 50
+        try:
+            for token in instructions:
+                apply_token(state, token)
+        except ValueError as e:
+            # 处理 crash 情况
+            return jsonify({
+                "error": str(e),
+                "state": state.to_dict(),
+                "instructions": [],
+                "end": True
+            })
+
+    # 返回更新后的状态和空动作列表（可在这里实现策略生成下一步动作）
+    return jsonify({
+        "state": state.to_dict(),
+        "instructions": [],  # TODO: 可以生成下一步动作策略
+        "end": False
+    })
+
 
 if __name__ == '__main__':
     app.run(debug=True)
