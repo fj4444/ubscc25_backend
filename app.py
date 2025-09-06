@@ -5,6 +5,7 @@ from bbnew import BlanketyBlanksAlgoTest
 from trade import LatexFormulaEvaluator
 from princess_diaries_v1 import princess_diaries
 from spy import investigate
+from sail import SailingClubHandler
 
 app = Flask(__name__)
 
@@ -70,6 +71,16 @@ def princess_diaries():
         result = princess_diaries(data)
         return jsonify(result), 200
         
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+@app.route('/sailing-club', methods=['POST'])
+def sailing_club():
+    try:
+        data = request.json
+        handler = SailingClubHandler()
+        return jsonify(handler.handle_request(data)), 200
+
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
