@@ -100,7 +100,8 @@ from InkArchive import final
 def The_Ink_Archive():
     try:
         data = request.json
-        return final(data)
+        # print(final(data))
+        return jsonify(final(data)),200
 
     except Exception as e:
         return jsonify({"error": str(e)}), 400
