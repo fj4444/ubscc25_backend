@@ -90,8 +90,8 @@ class SailingClubHandler:
                 solutions.append(solution)
 
             response_data = {"solutions": solutions}
-            # return json.dumps(response_data, indent=2)
-            return response_data
+            return json.dumps(response_data, indent=2)
+            # return response_data
 
         except json.JSONDecodeError as e:
             return json.dumps({"error": f"Invalid JSON format: {e}"})
