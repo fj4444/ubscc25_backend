@@ -3,7 +3,7 @@ from ticketing import agent
 # from BlanketyBlanksAlgo import BlanketyBlanksAlgoTest
 from bbnew_ import BlanketyBlanksAlgoTest
 from trade import LatexFormulaEvaluator
-from princess_diaries_v1 import princess_diaries
+from princess_diaries_v1 import solve_princess_diaries
 from spy import investigate
 from sail import SailingClubHandler
 
