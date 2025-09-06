@@ -1,8 +1,3 @@
-"""
-Princess Diaries 任务调度优化算法
-解决地铁系统中的任务调度和最短路径问题
-"""
-
 import networkx as nx
 import numpy as np
 from typing import List, Tuple, Dict, Set

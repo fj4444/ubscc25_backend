@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 from ticketing import agent
 from BlanketyBlanksAlgo import BlanketyBlanksAlgoTest
+from spy import investigate
 
 app = Flask(__name__)
 
@@ -23,7 +24,15 @@ def ticketing_agent():
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
+@app.route('/spy', methods=['POST'])
+def spy():
+    try:
+        data = request.json
+        result = investigate(data)
+        return jsonify(result), 200
 
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
 
 if __name__ == '__main__':
     app.run(debug=True)
