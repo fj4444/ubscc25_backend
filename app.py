@@ -4,7 +4,7 @@ from BlanketyBlanksAlgo import BlanketyBlanksAlgoTest
 
 app = Flask(__name__)
 
-@app.route('/BlanketyBlanksAlgo', methods=['POST'])
+@app.route('/blankety', methods=['POST'])
 def BlanketyBlanksAlgo():
     try:
         data = request.json
