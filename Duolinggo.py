@@ -26,6 +26,7 @@ def sort_numerals_1(nums):
 
 def parse_english(s):
     s = s.replace(',', '')
+    s = s.replace('-', ' ')
     # Predefine a dictionary of English number words
     words = {
         "zero": 0, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7, "eight": 8, "nine": 9,
@@ -43,15 +44,30 @@ def parse_english(s):
     current = 0
     for token in tokens:
         if token not in words:
-            return None  # invalid
+            return None  # 无效token
+    
+    total = 0
+    current = 0
+    
+    for token in tokens:
         value = words[token]
-        if value in [100, 1000, 1000000]:
+        
+        if value == 100:
+            # 处理百位
             if current == 0:
                 current = 1
-            total += current * value
+            current *= value
+        elif value >= 1000:
+            # 处理千位、百万位、十亿位
+            if current == 0:
+                current = 1
+            current *= value
+            total += current
             current = 0
         else:
+            # 处理个位和十位
             current += value
+    
     total += current
     return total
 
@@ -190,8 +206,8 @@ def process(json_data):
         nums = json_data["challengeInput"]["unsortedList"]
         py_results = [str(i) for i in sort_numerals_1(nums)]
         result = {"sortedList": py_results}
-        json_output = json.dumps(result, indent=2)
-        return json_output
+        # json_output = json.dumps(result, indent=2)
+        return result
     else:
         nums = json_data["challengeInput"]["unsortedList"]
         py_results = sort_numerals_2(nums)
