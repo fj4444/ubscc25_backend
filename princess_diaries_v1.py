@@ -1,5 +1,6 @@
 import networkx as nx
 import numpy as np
+import heapq
 from typing import List, Tuple, Dict, Set
 
 
@@ -208,32 +209,43 @@ def _build_subway_graph(routes: List[Dict]) -> nx.Graph:
 
 
 def _compute_distance_matrix(graph: nx.Graph) -> Tuple[np.ndarray, Dict[int, int], List[int]]:
-    """计算所有车站之间的最短距离矩阵"""
+    """计算所有车站之间的最短距离矩阵（基于Dijkstra算法）"""
     stations = sorted(list(graph.nodes()))
     # 新增：若stations为空，返回空矩阵和空映射
     if not stations:
         return np.array([[]]), {}, []
     n = len(stations)
     station_to_idx = {station: i for i, station in enumerate(stations)}
-    
+
     distance_matrix = np.full((n, n), np.inf)
     np.fill_diagonal(distance_matrix, 0)
-    
-    # 初始化直接连接的边
+
+    # 构建邻接表
+    adj = {station: [] for station in stations}
     for u, v, data in graph.edges(data=True):
         weight = data.get('weight', 1)
-        u_idx = station_to_idx[u]
-        v_idx = station_to_idx[v]
-        distance_matrix[u_idx][v_idx] = weight
-        distance_matrix[v_idx][u_idx] = weight
-    
-    # 使用Floyd-Warshall算法计算最短路径
-    for k in range(n):
-        for i in range(n):
-            for j in range(n):
-                if distance_matrix[i][k] + distance_matrix[k][j] < distance_matrix[i][j]:
-                    distance_matrix[i][j] = distance_matrix[i][k] + distance_matrix[k][j]
-    
+        adj[u].append((v, weight))
+        adj[v].append((u, weight))
+
+    # 对每个station作为源点运行Dijkstra
+    for src_idx, src_station in enumerate(stations):
+        # Dijkstra
+        dists = [np.inf] * n
+        dists[src_idx] = 0
+        heap = [(0, src_station)]
+        visited = set()
+        while heap:
+            cost_u, u = heapq.heappop(heap)
+            if u in visited:
+                continue
+            visited.add(u)
+            u_idx = station_to_idx[u]
+            for v, weight in adj[u]:
+                v_idx = station_to_idx[v]
+                if dists[v_idx] > dists[u_idx] + weight:
+                    dists[v_idx] = dists[u_idx] + weight
+                    heapq.heappush(heap, (dists[v_idx], v))
+        distance_matrix[src_idx, :] = dists
     return distance_matrix, station_to_idx, stations
 
 
