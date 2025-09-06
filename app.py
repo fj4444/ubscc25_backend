@@ -24,7 +24,7 @@ def ticketing_agent():
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
-@app.route('/spy', methods=['POST'])
+@app.route('/investigate', methods=['POST'])
 def spy():
     try:
         data = request.json
