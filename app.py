@@ -128,34 +128,43 @@ def mage_time():
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
+from firewall import final_firewall
+@app.route('/operation-safeguard',methods=['POST'])
+def firewall():
+    try:
+        data = request.json
+        return jsonify(final_firewall(data)), 200
 
-# @app.route('/2048', methods=['POST'])
-# def handle_2048():
-#     """
-#     处理来自前端的 2048 游戏请求。
-#     """
-#     # 确保请求体是 JSON 格式
-#     if not request.is_json:
-#         return jsonify({"error": "请求体必须是 JSON 格式"}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
 
-#     # 从请求中获取网格和移动方向
-#     data = request.get_json()
-#     grid = data.get('grid')
-#     direction = data.get('mergeDirection')
+@app.route('/2048', methods=['POST'])
+def handle_2048():
+    """
+    处理来自前端的 2048 游戏请求。
+    """
+    # 确保请求体是 JSON 格式
+    if not request.is_json:
+        return jsonify({"error": "请求体必须是 JSON 格式"}), 400
 
-#     # 简单的输入验证
-#     if not grid or not direction:
-#         return jsonify({"error": "缺少 'grid' 或 'mergeDirection' 参数"}), 400
+    # 从请求中获取网格和移动方向
+    data = request.get_json()
+    grid = data.get('grid')
+    direction = data.get('mergeDirection')
 
-#     # 调用核心游戏逻辑处理函数
-#     next_grid, end_game = process_grid(grid, direction)
+    # 简单的输入验证
+    if not grid or not direction:
+        return jsonify({"error": "缺少 'grid' 或 'mergeDirection' 参数"}), 400
 
-#     # 构造并返回响应
-#     response = {
-#         "nextGrid": next_grid,
-#         "endGame": end_game
-#     }
-#     return jsonify(response)
+    # 调用核心游戏逻辑处理函数
+    next_grid, end_game = process_grid(grid, direction)
+
+    # 构造并返回响应
+    response = {
+        "nextGrid": next_grid,
+        "endGame": end_game
+    }
+    return jsonify(response)
 
 if __name__ == '__main__':
     app.run(debug=True)
