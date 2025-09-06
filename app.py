@@ -115,7 +115,7 @@ def trading_bot():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 400
-        
+
 @app.route('/<path:path>', methods=['POST'])
 def catch_all_post(path):
     print("----------------------------")
