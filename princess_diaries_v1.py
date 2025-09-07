@@ -84,15 +84,14 @@ def solve_princess_diaries(input_data: dict) -> dict:
         # 计算距离矩阵
         distance_matrix, station_to_idx, idx_to_station = _compute_distance_matrix(graph)
         
-        # 使用启发式方法求解（可以选择不同的策略）
-        optimal_result = _solve_heuristic_schedule(tasks, graph, distance_matrix, station_to_idx, starting_station)
+        # 使用多种启发式方法并选择最佳结果
+        heuristic_result = _solve_heuristic_schedule(tasks, graph, distance_matrix, station_to_idx, starting_station)
+        greedy_result = _solve_greedy_schedule(tasks, graph, distance_matrix, station_to_idx, starting_station)
+        advanced_result = _solve_advanced_heuristic(tasks, graph, distance_matrix, station_to_idx, starting_station)
         
-        # 可选：比较不同启发式方法的结果
-        # greedy_result = _solve_greedy_schedule(tasks, graph, distance_matrix, station_to_idx, starting_station)
-        # 选择更好的结果
-        # if greedy_result['max_score'] > optimal_result['max_score'] or \
-        #    (greedy_result['max_score'] == optimal_result['max_score'] and greedy_result['min_fee'] < optimal_result['min_fee']):
-        #     optimal_result = greedy_result
+        # 选择最佳结果（优先考虑得分，得分相同时考虑费用）
+        results = [heuristic_result, greedy_result, advanced_result]
+        optimal_result = max(results, key=lambda r: (r['max_score'], -r['min_fee']))
         
         return optimal_result
         
@@ -343,25 +342,19 @@ def _solve_heuristic_schedule(tasks: List[Dict], graph: nx.Graph, distance_matri
     使用启发式方法求解任务调度方案
     
     策略：
-    1. 按得分密度（得分/时间长度）排序任务
-    2. 贪心选择兼容的任务
-    3. 优先选择得分高且交通成本低的任务
+    1. 使用贪心算法，按结束时间排序
+    2. 对于每个任务，计算选择它后的总收益
+    3. 选择收益最大的兼容任务
     """
     if not tasks:
         return {'max_score': 0, 'min_fee': 0, 'schedule': []}
     
     try:
-        # 计算每个任务的得分密度（得分/持续时间）
-        for task in tasks:
-            duration = task['end'] - task['start']
-            task['score_density'] = task['score'] / duration if duration > 0 else 0
+        # 按结束时间排序任务（贪心策略）
+        sorted_tasks = sorted(tasks, key=lambda t: t['end'])
         
-        # 按得分密度降序排序，得分密度相同时按得分降序排序
-        sorted_tasks = sorted(tasks, key=lambda t: (-t['score_density'], -t['score'], t['start']))
-        
+        # 使用动态规划的思想，但用贪心选择
         selected_tasks = []
-        current_time = 0
-        current_station = starting_station
         
         for task in sorted_tasks:
             # 检查任务是否与已选择的任务时间兼容
@@ -372,22 +365,33 @@ def _solve_heuristic_schedule(tasks: List[Dict], graph: nx.Graph, distance_matri
                     break
             
             if is_compatible:
-                # 计算选择这个任务的交通成本
-                travel_cost = 0
-                if current_station in station_to_idx and task['station'] in station_to_idx:
-                    current_idx = station_to_idx[current_station]
-                    task_idx = station_to_idx[task['station']]
-                    cost = distance_matrix[current_idx][task_idx]
-                    if not np.isnan(cost) and not np.isinf(cost):
-                        travel_cost = int(cost)
+                # 计算选择这个任务后的总收益
+                # 收益 = 任务得分 - 额外交通成本
+                additional_cost = 0
                 
-                # 计算任务的净收益（得分 - 交通成本）
-                net_benefit = task['score'] - travel_cost
+                if selected_tasks:
+                    # 计算从最后一个任务到当前任务的费用
+                    last_task = selected_tasks[-1]
+                    if (last_task['station'] in station_to_idx and 
+                        task['station'] in station_to_idx):
+                        last_idx = station_to_idx[last_task['station']]
+                        task_idx = station_to_idx[task['station']]
+                        cost = distance_matrix[last_idx][task_idx]
+                        if not np.isnan(cost) and not np.isinf(cost):
+                            additional_cost = int(cost)
+                else:
+                    # 计算从起始站到当前任务的费用
+                    if (starting_station in station_to_idx and 
+                        task['station'] in station_to_idx):
+                        start_idx = station_to_idx[starting_station]
+                        task_idx = station_to_idx[task['station']]
+                        cost = distance_matrix[start_idx][task_idx]
+                        if not np.isnan(cost) and not np.isinf(cost):
+                            additional_cost = int(cost)
                 
-                # 如果净收益为正，或者任务得分很高，则选择该任务
-                if net_benefit > 0 or task['score'] >= 3:
+                # 如果任务得分大于等于额外交通成本，则选择该任务
+                if task['score'] >= additional_cost:
                     selected_tasks.append(task)
-                    current_station = task['station']
         
         # 计算总得分
         total_score = sum(task['score'] for task in selected_tasks)
@@ -437,6 +441,103 @@ def _solve_greedy_schedule(tasks: List[Dict], graph: nx.Graph, distance_matrix: 
             
             if is_compatible:
                 selected_tasks.append(task)
+        
+        # 计算总得分
+        total_score = sum(task['score'] for task in selected_tasks)
+        
+        # 计算总交通费用（包括回到起始站的费用）
+        total_travel_cost = _calculate_travel_cost(selected_tasks, distance_matrix, station_to_idx, starting_station)
+        
+        # 按开始时间排序任务名称（升序）
+        schedule = sorted([task['name'] for task in selected_tasks], 
+                         key=lambda name: next(t['start'] for t in selected_tasks if t['name'] == name))
+        
+        return {
+            'max_score': int(total_score),
+            'min_fee': int(total_travel_cost),
+            'schedule': schedule
+        }
+        
+    except Exception:
+        return {'max_score': 0, 'min_fee': 0, 'schedule': []}
+
+
+def _solve_advanced_heuristic(tasks: List[Dict], graph: nx.Graph, distance_matrix: np.ndarray,
+                             station_to_idx: Dict[int, int], starting_station: int) -> Dict:
+    """
+    使用高级启发式方法求解任务调度方案
+    
+    策略：
+    1. 按得分密度排序任务
+    2. 使用局部搜索优化结果
+    3. 考虑交通成本的影响
+    """
+    if not tasks:
+        return {'max_score': 0, 'min_fee': 0, 'schedule': []}
+    
+    try:
+        # 计算每个任务的得分密度
+        for task in tasks:
+            duration = task['end'] - task['start']
+            task['score_density'] = task['score'] / duration if duration > 0 else 0
+        
+        # 按得分密度降序排序
+        sorted_tasks = sorted(tasks, key=lambda t: (-t['score_density'], -t['score'], t['start']))
+        
+        # 初始解：贪心选择
+        selected_tasks = []
+        for task in sorted_tasks:
+            is_compatible = True
+            for selected_task in selected_tasks:
+                if not _is_compatible(task, selected_task):
+                    is_compatible = False
+                    break
+            
+            if is_compatible:
+                selected_tasks.append(task)
+        
+        # 局部搜索优化
+        improved = True
+        while improved:
+            improved = False
+            
+            # 尝试添加未选择的任务
+            for task in tasks:
+                if task in selected_tasks:
+                    continue
+                
+                # 检查是否可以添加这个任务
+                can_add = True
+                for selected_task in selected_tasks:
+                    if not _is_compatible(task, selected_task):
+                        can_add = False
+                        break
+                
+                if can_add:
+                    # 计算添加这个任务后的收益
+                    additional_cost = 0
+                    if selected_tasks:
+                        last_task = selected_tasks[-1]
+                        if (last_task['station'] in station_to_idx and 
+                            task['station'] in station_to_idx):
+                            last_idx = station_to_idx[last_task['station']]
+                            task_idx = station_to_idx[task['station']]
+                            cost = distance_matrix[last_idx][task_idx]
+                            if not np.isnan(cost) and not np.isinf(cost):
+                                additional_cost = int(cost)
+                    else:
+                        if (starting_station in station_to_idx and 
+                            task['station'] in station_to_idx):
+                            start_idx = station_to_idx[starting_station]
+                            task_idx = station_to_idx[task['station']]
+                            cost = distance_matrix[start_idx][task_idx]
+                            if not np.isnan(cost) and not np.isinf(cost):
+                                additional_cost = int(cost)
+                    
+                    if task['score'] > additional_cost:
+                        selected_tasks.append(task)
+                        improved = True
+                        break
         
         # 计算总得分
         total_score = sum(task['score'] for task in selected_tasks)
