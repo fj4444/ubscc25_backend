@@ -84,16 +84,8 @@ def solve_princess_diaries(input_data: dict) -> dict:
         # 计算距离矩阵
         distance_matrix, station_to_idx, idx_to_station = _compute_distance_matrix(graph)
         
-        # 使用多种算法求解最优解，选择最佳结果
-        result1 = _solve_optimal_schedule_advanced(tasks, graph, distance_matrix, station_to_idx, starting_station)
-        result2 = _solve_optimal_schedule_enhanced(tasks, graph, distance_matrix, station_to_idx, starting_station)
-        
-        # 选择更好的结果
-        if (result1['max_score'] > result2['max_score'] or 
-            (result1['max_score'] == result2['max_score'] and result1['min_fee'] < result2['min_fee'])):
-            optimal_result = result1
-        else:
-            optimal_result = result2
+        # 使用动态规划求解最优解
+        optimal_result = _solve_optimal_schedule_advanced(tasks, graph, distance_matrix, station_to_idx, starting_station)
         
         return optimal_result
         
@@ -341,10 +333,10 @@ def _calculate_score(schedule: List[Dict]) -> int:
 def _solve_optimal_schedule_advanced(tasks: List[Dict], graph: nx.Graph, distance_matrix: np.ndarray,
                                     station_to_idx: Dict[int, int], starting_station: int) -> Dict:
     """
-    使用改进的动态规划求解最优调度方案
+    使用高级动态规划求解最优调度方案
     
     目标：在最大得分的前提下，最小化交通费用
-    使用状态压缩DP，状态为(最后任务索引, 当前位置)
+    处理相同得分但不同费用的情况
     """
     if not tasks:
         return {'max_score': 0, 'min_fee': 0, 'schedule': []}
@@ -354,99 +346,61 @@ def _solve_optimal_schedule_advanced(tasks: List[Dict], graph: nx.Graph, distanc
         sorted_tasks = sorted(tasks, key=lambda t: t['end'])
         n = len(sorted_tasks)
         
-        # 获取所有车站
-        all_stations = list(station_to_idx.keys())
-        if not all_stations:
-            return {'max_score': 0, 'min_fee': 0, 'schedule': []}
+        # dp[i] = (max_score, min_cost, task_sequence) 考虑前i个任务时的最优解
+        dp = [(0, 0, [])] * (n + 1)
         
-        # dp[last_task][station] = (max_score, min_cost, task_sequence)
-        # 表示以last_task为最后一个任务，当前位置在station时的最优解
-        dp = {}
-        
-        # 初始化：从起始站开始，没有选择任何任务
-        if starting_station in station_to_idx:
-            start_idx = station_to_idx[starting_station]
-            for station in all_stations:
-                if station in station_to_idx:
-                    station_idx = station_to_idx[station]
-                    travel_cost = distance_matrix[start_idx][station_idx]
-                    if not np.isnan(travel_cost) and not np.isinf(travel_cost):
-                        dp[(-1, station)] = (0, int(travel_cost), [])
-                    else:
-                        dp[(-1, station)] = (0, 0, [])
-        
-        # 对每个任务进行DP
-        for i in range(n):
-            current_task = sorted_tasks[i]
-            current_station = current_task['station']
+        for i in range(1, n + 1):
+            current_task = sorted_tasks[i - 1]
             
-            if current_station not in station_to_idx:
-                continue
-                
-            current_idx = station_to_idx[current_station]
+            # 不选择当前任务
+            dp[i] = dp[i - 1]
             
-            # 计算选择当前任务后的最优解
-            best_score = 0
-            best_cost = float('inf')
-            best_sequence = []
+            # 选择当前任务
+            # 找到最后一个与当前任务兼容的任务
+            last_compatible = -1
+            for j in range(i - 1, 0, -1):
+                if _is_compatible(sorted_tasks[j - 1], current_task):
+                    last_compatible = j - 1
+                    break
             
-            # 尝试从所有可能的前置状态转移
-            for (last_task_idx, prev_station), (prev_score, prev_cost, prev_sequence) in dp.items():
-                # 检查时间兼容性
-                if last_task_idx >= 0:
-                    prev_task = sorted_tasks[last_task_idx]
-                    if not _is_compatible(prev_task, current_task):
-                        continue
-                
-                # 计算移动费用
-                if prev_station in station_to_idx:
-                    prev_station_idx = station_to_idx[prev_station]
-                    travel_cost = distance_matrix[prev_station_idx][current_idx]
-                    if np.isnan(travel_cost) or np.isinf(travel_cost):
-                        travel_cost = 0
-                    else:
-                        travel_cost = int(travel_cost)
-                else:
-                    travel_cost = 0
-                
-                new_score = prev_score + current_task['score']
-                new_cost = prev_cost + travel_cost
-                new_sequence = prev_sequence + [current_task]
-                
-                # 更新最优解
-                if (new_score > best_score or 
-                    (new_score == best_score and new_cost < best_cost)):
-                    best_score = new_score
-                    best_cost = new_cost
-                    best_sequence = new_sequence
-            
-            # 更新DP状态
-            dp[(i, current_station)] = (best_score, best_cost, best_sequence)
-        
-        # 找到全局最优解
-        max_score = 0
-        min_cost = float('inf')
-        optimal_sequence = []
-        
-        for (last_task_idx, station), (score, cost, sequence) in dp.items():
-            if last_task_idx >= 0:  # 至少选择了一个任务
-                # 计算回到起始站的费用
-                if station in station_to_idx and starting_station in station_to_idx:
-                    station_idx = station_to_idx[station]
+            # 计算选择当前任务后的得分和费用
+            if last_compatible == -1:
+                # 没有兼容的前置任务，从起始站开始
+                prev_score, prev_cost, prev_sequence = 0, 0, []
+                if starting_station in station_to_idx and current_task['station'] in station_to_idx:
                     start_idx = station_to_idx[starting_station]
-                    return_cost = distance_matrix[station_idx][start_idx]
-                    if not np.isnan(return_cost) and not np.isinf(return_cost):
-                        total_cost = cost + int(return_cost)
-                    else:
-                        total_cost = cost
-                else:
-                    total_cost = cost
-                
-                if (score > max_score or 
-                    (score == max_score and total_cost < min_cost)):
-                    max_score = score
-                    min_cost = total_cost
-                    optimal_sequence = sequence
+                    current_idx = station_to_idx[current_task['station']]
+                    travel_cost = distance_matrix[start_idx][current_idx]
+                    if not np.isnan(travel_cost) and not np.isinf(travel_cost):
+                        prev_cost = int(travel_cost)
+            else:
+                # 有兼容的前置任务
+                prev_score, prev_cost, prev_sequence = dp[last_compatible + 1]
+                # 计算从上一个任务到当前任务的费用
+                prev_task = sorted_tasks[last_compatible]
+                if prev_task['station'] in station_to_idx and current_task['station'] in station_to_idx:
+                    prev_idx = station_to_idx[prev_task['station']]
+                    current_idx = station_to_idx[current_task['station']]
+                    travel_cost = distance_matrix[prev_idx][current_idx]
+                    if not np.isnan(travel_cost) and not np.isinf(travel_cost):
+                        prev_cost += int(travel_cost)
+            
+            score_with_current = prev_score + current_task['score']
+            # 修复：cost_with_current应该等于prev_cost（已经包含了到当前任务的费用）
+            cost_with_current = prev_cost
+            sequence_with_current = prev_sequence + [current_task]
+            
+            # 如果选择当前任务更好（得分更高，或得分相同但费用更低）
+            if (score_with_current > dp[i][0] or 
+                (score_with_current == dp[i][0] and cost_with_current < dp[i][1])):
+                dp[i] = (score_with_current, cost_with_current, sequence_with_current)
+        
+        # 获取最优解
+        max_score, min_cost, optimal_sequence = dp[n]
+        
+        # 计算完整的交通费用（包括回到起始站的费用）
+        # 注意：这里需要重新计算完整费用，因为DP过程中只计算了部分费用
+        travel_cost = _calculate_travel_cost(optimal_sequence, distance_matrix, station_to_idx, starting_station)
         
         # 按开始时间排序任务名称（升序）
         schedule = sorted([task['name'] for task in optimal_sequence], 
@@ -454,207 +408,7 @@ def _solve_optimal_schedule_advanced(tasks: List[Dict], graph: nx.Graph, distanc
         
         return {
             'max_score': int(max_score),
-            'min_fee': int(min_cost),
-            'schedule': schedule
-        }
-        
-    except Exception as e:
-        return {'max_score': 0, 'min_fee': 0, 'schedule': []}
-
-
-def _solve_optimal_schedule_enhanced(tasks: List[Dict], graph: nx.Graph, distance_matrix: np.ndarray,
-                                   station_to_idx: Dict[int, int], starting_station: int) -> Dict:
-    """
-    使用增强的动态规划求解最优调度方案
-    
-    使用更精确的状态表示：(已选择的任务集合, 当前位置)
-    通过位掩码表示任务选择状态
-    """
-    if not tasks:
-        return {'max_score': 0, 'min_fee': 0, 'schedule': []}
-    
-    try:
-        n = len(tasks)
-        if n > 20:  # 如果任务太多，使用贪心算法
-            return _solve_greedy_schedule(tasks, graph, distance_matrix, station_to_idx, starting_station)
-        
-        # 按结束时间排序任务
-        sorted_tasks = sorted(tasks, key=lambda t: t['end'])
-        
-        # 获取所有车站
-        all_stations = list(station_to_idx.keys())
-        if not all_stations:
-            return {'max_score': 0, 'min_fee': 0, 'schedule': []}
-        
-        # dp[mask][station] = (max_score, min_cost, task_sequence)
-        # mask是位掩码，表示已选择的任务
-        dp = {}
-        
-        # 初始化：从起始站开始，没有选择任何任务
-        if starting_station in station_to_idx:
-            start_idx = station_to_idx[starting_station]
-            for station in all_stations:
-                if station in station_to_idx:
-                    station_idx = station_to_idx[station]
-                    travel_cost = distance_matrix[start_idx][station_idx]
-                    if not np.isnan(travel_cost) and not np.isinf(travel_cost):
-                        dp[(0, station)] = (0, int(travel_cost), [])
-                    else:
-                        dp[(0, station)] = (0, 0, [])
-        
-        # 对每个可能的任务子集进行DP
-        for mask in range(1, 1 << n):
-            for i in range(n):
-                if not (mask & (1 << i)):  # 第i个任务未被选择
-                    continue
-                    
-                current_task = sorted_tasks[i]
-                current_station = current_task['station']
-                
-                if current_station not in station_to_idx:
-                    continue
-                    
-                current_idx = station_to_idx[current_station]
-                
-                # 计算选择当前任务后的最优解
-                best_score = 0
-                best_cost = float('inf')
-                best_sequence = []
-                
-                # 尝试从所有可能的前置状态转移
-                prev_mask = mask ^ (1 << i)  # 移除当前任务
-                
-                for (prev_mask_state, prev_station), (prev_score, prev_cost, prev_sequence) in dp.items():
-                    if prev_mask_state != prev_mask:
-                        continue
-                    
-                    # 检查时间兼容性
-                    compatible = True
-                    for j in range(n):
-                        if (prev_mask & (1 << j)) and j != i:  # 检查已选择的其他任务
-                            other_task = sorted_tasks[j]
-                            if not _is_compatible(other_task, current_task):
-                                compatible = False
-                                break
-                    
-                    if not compatible:
-                        continue
-                    
-                    # 计算移动费用
-                    if prev_station in station_to_idx:
-                        prev_station_idx = station_to_idx[prev_station]
-                        travel_cost = distance_matrix[prev_station_idx][current_idx]
-                        if np.isnan(travel_cost) or np.isinf(travel_cost):
-                            travel_cost = 0
-                        else:
-                            travel_cost = int(travel_cost)
-                    else:
-                        travel_cost = 0
-                    
-                    new_score = prev_score + current_task['score']
-                    new_cost = prev_cost + travel_cost
-                    new_sequence = prev_sequence + [current_task]
-                    
-                    # 更新最优解
-                    if (new_score > best_score or 
-                        (new_score == best_score and new_cost < best_cost)):
-                        best_score = new_score
-                        best_cost = new_cost
-                        best_sequence = new_sequence
-                
-                # 更新DP状态
-                if best_sequence:  # 只有当找到有效解时才更新
-                    dp[(mask, current_station)] = (best_score, best_cost, best_sequence)
-        
-        # 找到全局最优解
-        max_score = 0
-        min_cost = float('inf')
-        optimal_sequence = []
-        
-        for (mask, station), (score, cost, sequence) in dp.items():
-            if mask > 0:  # 至少选择了一个任务
-                # 计算回到起始站的费用
-                if station in station_to_idx and starting_station in station_to_idx:
-                    station_idx = station_to_idx[station]
-                    start_idx = station_to_idx[starting_station]
-                    return_cost = distance_matrix[station_idx][start_idx]
-                    if not np.isnan(return_cost) and not np.isinf(return_cost):
-                        total_cost = cost + int(return_cost)
-                    else:
-                        total_cost = cost
-                else:
-                    total_cost = cost
-                
-                if (score > max_score or 
-                    (score == max_score and total_cost < min_cost)):
-                    max_score = score
-                    min_cost = total_cost
-                    optimal_sequence = sequence
-        
-        # 按开始时间排序任务名称（升序）
-        schedule = sorted([task['name'] for task in optimal_sequence], 
-                         key=lambda name: next(t['start'] for t in optimal_sequence if t['name'] == name))
-        
-        return {
-            'max_score': int(max_score),
-            'min_fee': int(min_cost),
-            'schedule': schedule
-        }
-        
-    except Exception as e:
-        return {'max_score': 0, 'min_fee': 0, 'schedule': []}
-
-
-def _solve_greedy_schedule(tasks: List[Dict], graph: nx.Graph, distance_matrix: np.ndarray,
-                          station_to_idx: Dict[int, int], starting_station: int) -> Dict:
-    """
-    使用贪心算法求解调度方案（用于任务数量较多的情况）
-    
-    策略：按得分密度（得分/时间）排序，然后贪心选择
-    """
-    if not tasks:
-        return {'max_score': 0, 'min_fee': 0, 'schedule': []}
-    
-    try:
-        # 计算每个任务的得分密度
-        for task in tasks:
-            duration = task['end'] - task['start']
-            task['density'] = task['score'] / duration if duration > 0 else 0
-        
-        # 按得分密度降序排序
-        sorted_tasks = sorted(tasks, key=lambda t: (-t['density'], t['start']))
-        
-        selected_tasks = []
-        current_time = 0
-        current_station = starting_station
-        
-        for task in sorted_tasks:
-            # 检查时间兼容性
-            if task['start'] >= current_time:
-                # 检查是否可以到达任务地点
-                if (current_station in station_to_idx and 
-                    task['station'] in station_to_idx):
-                    
-                    current_idx = station_to_idx[current_station]
-                    task_idx = station_to_idx[task['station']]
-                    travel_time = distance_matrix[current_idx][task_idx]
-                    
-                    if (not np.isnan(travel_time) and not np.isinf(travel_time) and
-                        task['start'] >= current_time + travel_time):
-                        selected_tasks.append(task)
-                        current_time = task['end']
-                        current_station = task['station']
-        
-        # 计算总费用
-        total_cost = _calculate_travel_cost(selected_tasks, distance_matrix, station_to_idx, starting_station)
-        
-        # 按开始时间排序任务名称（升序）
-        schedule = sorted([task['name'] for task in selected_tasks], 
-                         key=lambda name: next(t['start'] for t in selected_tasks if t['name'] == name))
-        
-        return {
-            'max_score': sum(task['score'] for task in selected_tasks),
-            'min_fee': int(total_cost),
+            'min_fee': int(travel_cost),  # 使用重新计算的完整费用
             'schedule': schedule
         }
         
